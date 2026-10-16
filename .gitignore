@@ -1,0 +1,9 @@
+# 运行时自动生成的 SQLite 数据库（首次启动 server/server.js 会自动重建表结构）
+server/data.db
+server/data.db-journal
+server/data.db-wal
+
+# 系统杂项
+Thumbs.db
+Desktop.ini
+.DS_Store

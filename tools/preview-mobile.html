@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <title>移动端预览 · 390px（开发辅助工具，不参与线上页面）</title>
+  <style>
+    body { margin: 0; padding: 24px; background: #22242e; font-family: system-ui, "Microsoft YaHei", sans-serif; color: #e8eaf3; }
+    h1 { font-size: 18px; margin: 0 0 6px; }
+    p.note { margin: 0 0 20px; color: #9aa0b5; font-size: 13px; }
+    .phone { margin: 0 0 28px; }
+    .phone h2 { font-size: 14px; margin: 0 0 8px; color: #c3c8dd; font-weight: 600; }
+    .phone iframe {
+      width: 390px; height: 780px;
+      border: 1px solid #3a4060; border-radius: 18px;
+      background: #fff; display: block;
+    }
+  </style>
+</head>
+<body>
+  <h1>移动端预览（390 × 780，模拟手机视口）</h1>
+  <p class="note">用这个页面在桌面浏览器里检查手机布局；iframe 宽度即 "手机宽度"，CSS 媒体查询会按 390px 生效。</p>
+
+  <div class="phone">
+    <h2>1. 章节入口页 index.html</h2>
+    <iframe src="../index.html" title="入口页移动端预览"></iframe>
+  </div>
+
+  <div class="phone">
+    <h2>2. 答题页 chapters/web-01.html</h2>
+    <iframe src="../chapters/web-01.html" title="答题页移动端预览"></iframe>
+  </div>
+
+  <div class="phone">
+    <h2>3. 答题页 chapters/java-03.html</h2>
+    <iframe src="../chapters/java-03.html" title="Java 答题页移动端预览"></iframe>
+  </div>
+</body>
+</html>

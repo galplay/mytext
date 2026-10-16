@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#4f46e5">
+  <meta name="description" content="登录或注册：账号和学习数据保存在服务器，进度、错题、收藏与笔记跨设备可用；排行榜、好友 PK 与个人主页需要登录，不登录也可以正常刷题。">
+  <title>登录 / 注册 · 在线刷题</title>
+  <link rel="stylesheet" href="css/style.css">
+  <!-- 主题 / 字号预置：在首帧绘制前应用，避免刷新闪烁 -->
+  <script>
+    (function () {
+      try {
+        var saved = localStorage.getItem('quiz.theme');
+        var theme = saved || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+        document.documentElement.setAttribute('data-theme', theme);
+        if (localStorage.getItem('quiz.font') === 'large') {
+          document.documentElement.classList.add('font-large');
+        }
+      } catch (e) { /* 隐私模式下 localStorage 不可用时忽略 */ }
+    })();
+  </script>
+</head>
+<body class="page">
+  <a class="skip-link" href="#view">跳到主要内容</a>
+
+  <header class="topbar">
+    <div class="topbar__inner">
+      <a class="brand" href="index.html" aria-label="返回首页">
+        <span class="brand__logo" aria-hidden="true">题</span>
+        <span class="brand__text">
+          <strong class="brand__title">在线刷题</strong>
+          <small class="brand__sub">登录 / 注册</small>
+        </span>
+      </a>
+      <div class="topbar__tools">
+        <button class="icon-btn" id="fontToggle" type="button" title="切换字号（大字模式）" aria-label="切换字号">
+          <span aria-hidden="true">Aa</span>
+        </button>
+        <button class="icon-btn" id="themeToggle" type="button" title="切换深色 / 浅色主题" aria-label="切换主题">
+          <span aria-hidden="true" data-theme-icon>🌙</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main id="view" class="view view--auth" tabindex="-1">
+    <noscript>
+      <p class="notice notice--error">本页面依赖浏览器原生 JavaScript，请开启 JavaScript 后重新打开。</p>
+    </noscript>
+
+    <section class="auth-card" aria-labelledby="authTitle">
+      <h1 class="auth-card__title" id="authTitle">登录或注册</h1>
+      <p class="auth-card__lead">账号保存在服务器上：注册后换台电脑、换个浏览器登录同一账号，进度、错题、收藏与笔记都能接着用。</p>
+
+      <div class="auth-tabs" role="tablist" aria-label="登录或注册">
+        <button class="auth-tab is-active" id="tabLogin" type="button" role="tab"
+                aria-selected="true" aria-controls="paneLogin">登录</button>
+        <button class="auth-tab" id="tabRegister" type="button" role="tab"
+                aria-selected="false" aria-controls="paneRegister">注册</button>
+      </div>
+
+      <p class="auth-error" id="authError" role="alert" hidden></p>
+
+      <!-- 登录表单 -->
+      <form class="auth-form" id="paneLogin" role="tabpanel" aria-labelledby="tabLogin" novalidate>
+        <label class="field">
+          <span class="field__label">用户名</span>
+          <input class="input" id="loginName" type="text" maxlength="16" autocomplete="username" required>
+        </label>
+        <label class="field">
+          <span class="field__label">密码</span>
+          <input class="input" id="loginPass" type="password" autocomplete="current-password" required>
+        </label>
+        <button class="btn btn--primary btn--wide" type="submit">登录</button>
+      </form>
+
+      <!-- 注册表单 -->
+      <form class="auth-form" id="paneRegister" role="tabpanel" aria-labelledby="tabRegister" novalidate hidden>
+        <label class="field">
+          <span class="field__label">用户名</span>
+          <input class="input" id="regName" type="text" maxlength="16" autocomplete="off" required>
+          <span class="field__hint">2-16 位字母、数字、下划线或中文，注册后不可修改</span>
+        </label>
+        <label class="field">
+          <span class="field__label">密码</span>
+          <input class="input" id="regPass" type="password" autocomplete="new-password" required>
+          <span class="field__hint">至少 4 位；请勿使用真实常用密码</span>
+        </label>
+        <label class="field">
+          <span class="field__label">确认密码</span>
+          <input class="input" id="regPass2" type="password" autocomplete="new-password" required>
+        </label>
+        <label class="field">
+          <span class="field__label">昵称（可选）</span>
+          <input class="input" id="regNick" type="text" maxlength="12" autocomplete="off">
+        </label>
+        <button class="btn btn--primary btn--wide" type="submit">注册并登录</button>
+      </form>
+
+      <div class="auth-note">
+        <p>· 密码用 scrypt 加盐散列后保存在服务器，不会以明文存储；忘记密码暂时无法找回，请记牢。</p>
+        <p>· 不登录也可以正常刷题（进度按游客身份保存在本机浏览器）；登录后可以把游客数据一键上传到账号。</p>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="footer__inner">
+      <p>后端版 · 数据保存在服务器 · <a href="index.html">返回首页</a></p>
+    </div>
+  </footer>
+
+  <div class="toast-host" id="toastHost" role="status" aria-live="polite"></div>
+
+  <script src="js/store.js"></script>
+  <script src="js/util.js"></script>
+  <script src="js/account.js"></script>
+</body>
+</html>

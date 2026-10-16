@@ -1,0 +1,9 @@
+{
+  "name": "quiz-backend",
+  "version": "1.0.0",
+  "private": true,
+  "description": "在线刷题·后端版：Node 零依赖 HTTP 服务器 + SQLite 数据库（node server/server.js 或 npm start）",
+  "scripts": {
+    "start": "node server/server.js"
+  }
+}

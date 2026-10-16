@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#4f46e5">
+  <meta name="description" content="排行榜：查看本机各账号的已答题数、正确率与完成用时，支持和好友一对一 PK 对比。">
+  <title>排行榜 · 在线刷题</title>
+  <link rel="stylesheet" href="css/style.css">
+  <!-- 主题 / 字号预置：在首帧绘制前应用，避免刷新闪烁 -->
+  <script>
+    (function () {
+      try {
+        var saved = localStorage.getItem('quiz.theme');
+        var theme = saved || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+        document.documentElement.setAttribute('data-theme', theme);
+        if (localStorage.getItem('quiz.font') === 'large') {
+          document.documentElement.classList.add('font-large');
+        }
+      } catch (e) { /* 隐私模式下 localStorage 不可用时忽略 */ }
+    })();
+  </script>
+</head>
+<body class="page">
+  <a class="skip-link" href="#view">跳到主要内容</a>
+
+  <header class="topbar">
+    <div class="topbar__inner">
+      <a class="brand" href="index.html" aria-label="返回首页">
+        <span class="brand__logo" aria-hidden="true">题</span>
+        <span class="brand__text">
+          <strong class="brand__title">在线刷题</strong>
+          <small class="brand__sub">排行榜</small>
+        </span>
+      </a>
+      <div class="topbar__tools">
+        <button class="icon-btn" id="fontToggle" type="button" title="切换字号（大字模式）" aria-label="切换字号">
+          <span aria-hidden="true">Aa</span>
+        </button>
+        <button class="icon-btn" id="themeToggle" type="button" title="切换深色 / 浅色主题" aria-label="切换主题">
+          <span aria-hidden="true" data-theme-icon>🌙</span>
+        </button>
+      </div>
+      <div class="topbar__account" id="topbarAccount"></div>
+    </div>
+  </header>
+
+  <main id="view" class="view view--wide" tabindex="-1">
+    <noscript>
+      <p class="notice notice--error">本页面依赖浏览器原生 JavaScript，请开启 JavaScript 后重新打开。</p>
+    </noscript>
+
+    <section class="rank-head">
+      <div>
+        <h1 class="rank-head__title">排行榜</h1>
+        <p class="rank-head__sub">统计服务器上的全部账号 · 更新于 <strong id="rankTime">--:--:--</strong></p>
+      </div>
+      <div class="rank-head__tools">
+        <button class="chip-btn" id="friendFilter" type="button" aria-pressed="false" hidden>只看好友</button>
+        <button class="chip-btn chip-btn--ghost" id="refreshBtn" type="button">刷新</button>
+      </div>
+    </section>
+
+    <p class="notice notice--info" id="guestBanner" hidden>
+      排行榜需要登录后参与：登录能亮出自己的名次、加好友、发起 PK。
+      <a href="account.html?next=rank.html">登录 / 注册</a>
+    </p>
+
+    <!-- 好友 PK 对比（地址带 ?with=用户名 时显示） -->
+    <section class="pk-panel" id="pkPanel" aria-label="好友 PK" hidden>
+      <div class="pk-head" id="pkHead"></div>
+      <div class="pk-rows" id="pkRows"></div>
+      <p class="pane__hint">双方数据都来自服务器的作答记录；用时按实际作答时间累计（挂机不计）。</p>
+    </section>
+
+    <section class="rank-scroll" id="rankScroll" aria-label="排行榜表格">
+      <table class="rank-table">
+        <thead>
+          <tr>
+            <th scope="col">名次</th>
+            <th scope="col">用户</th>
+            <th scope="col"><button class="th-sort" id="sortAnswered" type="button">已答</button></th>
+            <th scope="col"><button class="th-sort" id="sortRate" type="button">正确率</button></th>
+            <th scope="col"><button class="th-sort" id="sortElapsed" type="button">用时</button></th>
+            <th scope="col"><button class="th-sort" id="sortChapters" type="button">完成章节</button></th>
+            <th scope="col">操作</th>
+          </tr>
+        </thead>
+        <tbody id="rankBody"></tbody>
+      </table>
+    </section>
+
+    <p class="friend-empty" id="rankEmpty" hidden></p>
+  </main>
+
+  <footer class="footer">
+    <div class="footer__inner">
+      <p>后端版 · 账号与战绩保存在服务器数据库 · <a href="index.html">返回首页</a></p>
+    </div>
+  </footer>
+
+  <div class="toast-host" id="toastHost" role="status" aria-live="polite"></div>
+
+  <!-- 题库数据（统计战绩用） -->
+  <script src="data/web.js"></script>
+  <script src="data/java.js"></script>
+
+  <script src="js/store.js"></script>
+  <script src="js/util.js"></script>
+  <script src="js/rank.js"></script>
+</body>
+</html>

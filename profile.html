@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#4f46e5">
+  <meta name="description" content="个人主页：更换头像、编辑昵称与个性签名，查看战绩、管理好友。">
+  <title>个人主页 · 在线刷题</title>
+  <link rel="stylesheet" href="css/style.css">
+  <!-- 主题 / 字号预置：在首帧绘制前应用，避免刷新闪烁 -->
+  <script>
+    (function () {
+      try {
+        var saved = localStorage.getItem('quiz.theme');
+        var theme = saved || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+        document.documentElement.setAttribute('data-theme', theme);
+        if (localStorage.getItem('quiz.font') === 'large') {
+          document.documentElement.classList.add('font-large');
+        }
+      } catch (e) { /* 隐私模式下 localStorage 不可用时忽略 */ }
+    })();
+  </script>
+</head>
+<body class="page">
+  <a class="skip-link" href="#view">跳到主要内容</a>
+
+  <header class="topbar">
+    <div class="topbar__inner">
+      <a class="brand" href="index.html" aria-label="返回首页">
+        <span class="brand__logo" aria-hidden="true">题</span>
+        <span class="brand__text">
+          <strong class="brand__title">在线刷题</strong>
+          <small class="brand__sub">个人主页</small>
+        </span>
+      </a>
+      <div class="topbar__tools">
+        <button class="icon-btn" id="fontToggle" type="button" title="切换字号（大字模式）" aria-label="切换字号">
+          <span aria-hidden="true">Aa</span>
+        </button>
+        <button class="icon-btn" id="themeToggle" type="button" title="切换深色 / 浅色主题" aria-label="切换主题">
+          <span aria-hidden="true" data-theme-icon>🌙</span>
+        </button>
+      </div>
+      <div class="topbar__account" id="topbarAccount"></div>
+    </div>
+  </header>
+
+  <main id="view" class="view view--profile" tabindex="-1">
+    <noscript>
+      <p class="notice notice--error">本页面依赖浏览器原生 JavaScript，请开启 JavaScript 后重新打开。</p>
+    </noscript>
+
+    <!-- 头部：大头像 + 昵称 + 用户名 + 签名 -->
+    <section class="profile-head" id="profileHead" aria-label="账号信息"></section>
+
+    <div class="profile-grid">
+      <!-- 编辑资料 -->
+      <section class="pane" aria-labelledby="editTitle">
+        <h2 class="pane__title" id="editTitle">编辑资料</h2>
+
+        <div class="avatar-editor">
+          <div class="avatar-editor__preview" id="avatarPreview"></div>
+          <div class="avatar-editor__ops">
+            <div class="swatches" id="swatchRow" role="group" aria-label="头像底色"></div>
+            <div class="avatar-editor__btns">
+              <label class="btn btn--ghost btn--sm" for="avatarFile">上传图片</label>
+              <input class="visually-hidden" id="avatarFile" type="file" accept="image/*">
+              <button class="btn btn--ghost btn--sm" id="avatarReset" type="button" hidden>用色块头像</button>
+            </div>
+            <p class="pane__hint">图片自动裁剪成正方形并压缩到 128×128，保存在你的账号里。</p>
+          </div>
+        </div>
+
+        <label class="field">
+          <span class="field__label">昵称</span>
+          <input class="input" id="nickInput" type="text" maxlength="12" autocomplete="off" placeholder="展示在排行榜上的名字">
+        </label>
+        <label class="field">
+          <span class="field__label">个性签名</span>
+          <input class="input" id="sigInput" type="text" maxlength="60" autocomplete="off" placeholder="一句话介绍自己（最多 60 字）">
+        </label>
+        <button class="btn btn--primary" id="saveProfile" type="button">保存资料</button>
+      </section>
+
+      <!-- 战绩 -->
+      <section class="pane" aria-labelledby="statsTitle">
+        <h2 class="pane__title" id="statsTitle">我的战绩</h2>
+        <div class="metric-grid" id="metricGrid"></div>
+        <p class="pane__hint">用时按「实际作答时间」累计：中途挂机（间隔超过 10 分钟）的部分不计入。</p>
+        <p class="pane__hint" id="bankSplit"></p>
+        <div class="pane__actions">
+          <a class="btn btn--ghost btn--sm" href="rank.html">查看排行榜</a>
+          <a class="btn btn--ghost btn--sm" href="index.html">去刷题</a>
+        </div>
+      </section>
+
+      <!-- 好友 -->
+      <section class="pane pane--wide" aria-labelledby="friendTitle">
+        <h2 class="pane__title" id="friendTitle">好友</h2>
+        <p class="pane__hint">输入对方的用户名就能互加好友（服务器上的账号都可以加），然后在排行榜里 PK。</p>
+        <div class="friend-add">
+          <input class="input" id="friendName" type="text" maxlength="16" autocomplete="off" placeholder="输入对方的用户名">
+          <button class="btn btn--primary btn--sm" id="friendAddBtn" type="button">添加好友</button>
+        </div>
+        <div class="friend-list" id="friendList"></div>
+      </section>
+    </div>
+
+    <div class="profile-actions">
+      <span class="profile-actions__note">当前身份：<strong id="whoami"></strong> · 退出后作答数据会切换到游客身份，服务器上的数据保留，重新登录可继续。</span>
+      <button class="btn btn--ghost" id="logoutBtn" type="button">退出登录</button>
+    </div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer__inner">
+      <p>后端版 · 资料与战绩保存在服务器 · <a href="index.html">返回首页</a></p>
+    </div>
+  </footer>
+
+  <div class="toast-host" id="toastHost" role="status" aria-live="polite"></div>
+
+  <!-- 题库数据（统计战绩用） -->
+  <script src="data/web.js"></script>
+  <script src="data/java.js"></script>
+
+  <script src="js/store.js"></script>
+  <script src="js/util.js"></script>
+  <script src="js/profile.js"></script>
+</body>
+</html>

@@ -1,0 +1,45 @@
+﻿======================================================================
+Web题库.md lines= 1621
+h3 blocks: 120  h2: 6  h4: 0
+h2 list: ## 一、HTML基础 | ## 二、HTML进阶 | ## 三、HTML表单与表格 | ## 四、CSS | ## 五、JavaScript基础 | ## 六、JavaScript进阶
+fences: 2 htmlTagLines: 97 img: 0 tableLines: 0
+选项数量分布: {"0":1,"2":42,"4":76,"5":1}
+--- 选项行格式异常 (非 "- X." 形式) 共 17
+    OPT-CODE 65
+    OPT-CODE 79
+    OPT-CODE 93
+    OPT-CODE 107
+    OPT-CODE 121
+    OPT-CODE 135
+    OPT-CODE 191
+    OPT-CODE 353
+    OPT-CODE 367
+    OPT-CODE 395
+    OPT-CODE 418
+    OPT-CODE 536
+    OPT-CODE 564
+    OPT-CODE 578
+    OPT-CODE 592
+    OPT-CODE 1242
+    OPT-CODE 1596
+--- 缺 **答案** 行 共 0
+--- 缺 解析 共 0
+--- 题干含行内代码: 10
+--- 非标准 h3 标题: 0
+======================================================================
+Java题库.md lines= 3459
+h3 blocks: 219  h2: 1  h4: 0
+h2 list: ## Java题库
+fences: 64 htmlTagLines: 8 img: 0 tableLines: 0
+选项数量分布: {"2":15,"4":204}
+--- 选项行格式异常 (非 "- X." 形式) 共 4
+    OPT-CODE 715
+    OPT-CODE 1276
+    OPT-CODE 1402
+    OPT-CODE 1623
+--- 缺 **答案** 行 共 1
+    1118 (### 71. 单选题) -> line#1118 "(none)"
+--- 缺 解析 共 1
+    2164 ### 142. 单选题
+--- 题干含行内代码: 5
+--- 非标准 h3 标题: 0

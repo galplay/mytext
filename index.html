@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#4f46e5">
+  <meta name="description" content="在线刷题（后端版）：Web 前端题库与 Java 程序设计题库，按章节练习，答完立刻判分；账号、答题进度、错题本、收藏与笔记保存在服务器，支持多账号排行榜与好友 PK。">
+  <title>在线刷题 · Web 前端 / Java</title>
+  <link rel="stylesheet" href="css/style.css">
+  <!-- 主题 / 字号预置：在首帧绘制前应用，避免刷新闪烁 -->
+  <script>
+    (function () {
+      try {
+        var saved = localStorage.getItem('quiz.theme');
+        var theme = saved || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+        document.documentElement.setAttribute('data-theme', theme);
+        if (localStorage.getItem('quiz.font') === 'large') {
+          document.documentElement.classList.add('font-large');
+        }
+      } catch (e) { /* 隐私模式下 localStorage 不可用时忽略 */ }
+    })();
+  </script>
+</head>
+<body class="page">
+  <a class="skip-link" href="#view">跳到主要内容</a>
+
+  <header class="topbar">
+    <div class="topbar__inner">
+      <a class="brand" href="index.html" aria-label="返回首页">
+        <span class="brand__logo" aria-hidden="true">题</span>
+        <span class="brand__text">
+          <strong class="brand__title">在线刷题</strong>
+          <small class="brand__sub">Web 前端 · Java 程序设计</small>
+        </span>
+      </a>
+      <div class="topbar__tools">
+        <button class="icon-btn" id="fontToggle" type="button" title="切换字号（大字模式）" aria-label="切换字号">
+          <span aria-hidden="true">Aa</span>
+        </button>
+        <button class="icon-btn" id="themeToggle" type="button" title="切换深色 / 浅色主题" aria-label="切换主题">
+          <span aria-hidden="true" data-theme-icon>🌙</span>
+        </button>
+      </div>
+      <div class="topbar__account" id="topbarAccount"></div>
+    </div>
+  </header>
+
+  <main id="view" class="view view--home" tabindex="-1">
+    <noscript>
+      <p class="notice notice--error">本页面依赖浏览器原生 JavaScript，请开启 JavaScript 后重新打开。</p>
+    </noscript>
+
+    <section class="hero">
+      <h1 class="hero__title">挑一个章节，开始刷题</h1>
+      <p class="hero__lead">
+        每题选好答案提交后立刻判分，答错能看到正确答案与解析；做到一半关掉页面也没关系——
+        登录后账号和全部学习数据都保存在服务器的数据库里，换台电脑、换个浏览器登录还能接着刷；
+        不登录的游客进度保存在本机浏览器，同样可以正常刷题。
+      </p>
+      <div class="hero__stats" id="heroStats"></div>
+    </section>
+
+    <!-- 错题本（鲜红）与收藏夹（金黄）：跨章节汇总，点击展开列表 -->
+    <section class="tools" id="myTools" aria-labelledby="toolsTitle">
+      <div class="section-head">
+        <h2 id="toolsTitle">我的错题与收藏</h2>
+        <span>跨章节自动汇总 · 点进任意一题直接跳回重做</span>
+      </div>
+
+      <div class="tool-grid">
+        <button class="tool-card tool-card--wrong is-empty" id="wrongBookBtn" type="button"
+                aria-expanded="false" aria-controls="wrongBookPanel">
+          <span class="tool-card__icon" aria-hidden="true">✗</span>
+          <span class="tool-card__body">
+            <strong class="tool-card__title">错题本</strong>
+            <span class="tool-card__desc" id="wrongBookDesc">答错的题会自动汇总到这里</span>
+          </span>
+          <span class="tool-card__count" id="wrongBookCount">0</span>
+          <span class="tool-card__caret" aria-hidden="true">▾</span>
+        </button>
+
+        <button class="tool-card tool-card--star is-empty" id="starBookBtn" type="button"
+                aria-expanded="false" aria-controls="starBookPanel">
+          <span class="tool-card__icon" aria-hidden="true">★</span>
+          <span class="tool-card__body">
+            <strong class="tool-card__title">收藏夹</strong>
+            <span class="tool-card__desc" id="starBookDesc">答题时点「☆ 收藏」把题收进来</span>
+          </span>
+          <span class="tool-card__count" id="starBookCount">0</span>
+          <span class="tool-card__caret" aria-hidden="true">▾</span>
+        </button>
+
+        <a class="tool-card tool-card--rank" id="rankCard" href="rank.html">
+          <span class="tool-card__icon" aria-hidden="true">♛</span>
+          <span class="tool-card__body">
+            <strong class="tool-card__title">排行榜 · 好友 PK</strong>
+            <span class="tool-card__desc" id="rankDesc">登录后可参与排行与好友 PK</span>
+          </span>
+          <span class="tool-card__count" id="rankCount">0</span>
+        </a>
+      </div>
+
+      <div class="tool-panel tool-panel--wrong" id="wrongBookPanel" hidden></div>
+      <div class="tool-panel tool-panel--star" id="starBookPanel" hidden></div>
+    </section>
+
+    <div id="bankSections"></div>
+
+    <div class="home-footer-tools">
+      <span>游客的数据保存在本机浏览器；登录后数据保存在服务器（server/data.db）。</span>
+      <button class="link-danger" id="clearAll" type="button">清除当前身份记录</button>
+    </div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer__inner">
+      <p>后端版 · 先运行 <code>node server/server.js</code>，再访问 http://localhost:3000 · 章节内支持键盘快捷键（A~E 选项、Enter 提交、←/→ 翻页、S 收藏）</p>
+    </div>
+  </footer>
+
+  <div class="toast-host" id="toastHost" role="status" aria-live="polite"></div>
+
+  <!-- 题库数据（生成自 Markdown，见 tools/build.mjs） -->
+  <script src="data/web.js"></script>
+  <script src="data/java.js"></script>
+
+  <!-- 入口页逻辑 -->
+  <script src="js/store.js"></script>
+  <script src="js/util.js"></script>
+  <script src="js/home.js"></script>
+</body>
+</html>
