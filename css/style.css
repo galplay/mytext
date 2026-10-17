@@ -562,6 +562,26 @@ a.tool-card { text-decoration: none; }
 
 .tool-empty { margin: 0; color: var(--text-faint); font-size: .88rem; }
 
+/* 错题本面板顶部的「错题清零练习」入口：整条可点的行动按钮 */
+.tool-start {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+  padding: 12px 14px;
+  border: 1px solid var(--primary-strong);
+  border-radius: var(--radius-sm);
+  background: linear-gradient(135deg, #585bf0, #4338ca);
+  color: #fff;
+  font-size: .9rem;
+  font-weight: 700;
+  box-shadow: var(--shadow-sm);
+}
+.tool-start:hover { background: linear-gradient(135deg, #6366f1, #4f46e5); text-decoration: none; }
+.tool-start__icon { flex: none; font-size: .8rem; }
+.tool-start__label { flex: 1; min-width: 0; }
+.tool-start__go { flex: none; font-size: .84rem; opacity: .9; }
+
 /* ---------- 首页 · 题目维护日志 ---------- */
 .maintlog { margin-top: 26px; }
 .maintlog__bar {

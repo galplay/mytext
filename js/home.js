@@ -183,6 +183,16 @@
         : '收藏夹是空的。答题时点右上角「☆ 收藏」（快捷键 S），想复习的题就会收集到这里。'));
       return;
     }
+    // 错题本非空：面板顶部放「错题清零练习」入口，把所有章节的错题汇成新一轮刷题
+    if (kind === 'wrong') {
+      var start = el('a', 'tool-start');
+      start.href = 'wrong-practice.html';
+      start.appendChild(el('span', 'tool-start__icon', '▶'));
+      start.appendChild(el('span', 'tool-start__label',
+        '开始错题清零练习（全部 ' + list.length + ' 道错题汇成新一轮）'));
+      start.appendChild(el('span', 'tool-start__go', '进入 →'));
+      panel.appendChild(start);
+    }
     groupByChapter(list).forEach(function (g) {
       var group = el('div', 'tool-group');
 
