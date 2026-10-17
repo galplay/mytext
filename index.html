@@ -58,6 +58,12 @@
         不登录的游客进度保存在本机浏览器，同样可以正常刷题。
       </p>
       <div class="hero__stats" id="heroStats"></div>
+
+      <!-- 看板娘 DeepSeek 娘：站在右上角空白处，会眨眼摇摆，点她会开心（js/mascot.js） -->
+      <div class="mascot" id="mascot" aria-hidden="true">
+        <div class="mascot__bubble" id="mascotBubble"></div>
+        <canvas class="mascot__canvas" id="mascotCanvas"></canvas>
+      </div>
     </section>
 
     <!-- 错题本（鲜红）与收藏夹（金黄）：跨章节汇总，点击展开列表 -->
@@ -142,5 +148,7 @@
   <script src="js/store.js"></script>
   <script src="js/util.js"></script>
   <script src="js/home.js"></script>
+  <!-- 看板娘（独立于刷题逻辑，加载失败也不影响页面） -->
+  <script src="js/mascot.js"></script>
 </body>
 </html>

@@ -345,6 +345,8 @@
     progress.r[q.id] = { c: rec.c.slice(), ok: ok };
     save();
     renderQuestion();
+    // 答对放「天降米饭」庆祝，答错放「宕机」失败动画（页面没有看板娘时自动跳过）
+    if (window.Mascot) { if (ok) Mascot.rice(); else Mascot.fail(); }
   }
 
   function nextOrFinish() {

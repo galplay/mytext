@@ -271,7 +271,7 @@ code, pre, kbd { font-family: var(--mono); }
 @keyframes spin { to { transform: rotate(360deg); } }
 
 /* ---------- 入口页：英雄区与章节卡片 ---------- */
-.hero { padding: 26px 4px 6px; }
+.hero { padding: 26px 4px 6px; position: relative; } /* relative：给看板娘做定位基准 */
 .hero__title {
   margin: 0 0 8px;
   font-size: clamp(1.6rem, 4.5vw, 2.1rem);
@@ -288,6 +288,102 @@ code, pre, kbd { font-family: var(--mono); }
   color: var(--primary);
   font-size: .84rem;
   font-weight: 600;
+}
+
+/* ---------- 首页右上角看板娘（DeepSeek 娘，js/mascot.js 绘制） ---------- */
+.mascot {
+  position: absolute;
+  top: 2px;
+  right: 4px;
+  width: 176px;
+  height: 176px;
+  z-index: 2;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.mascot__canvas { display: block; width: 100%; height: 100%; }
+/* 台词气泡：默认藏在立绘左侧（小三角指向她），加 .is-show 弹出 */
+.mascot__bubble {
+  position: absolute;
+  right: calc(100% - 44px);
+  top: 14px;
+  transform: scale(.6);
+  transform-origin: right center;
+  max-width: 240px;
+  padding: 7px 13px;
+  border: 2px solid var(--primary-border);
+  border-radius: 16px;
+  background: var(--surface);
+  color: var(--text);
+  font-size: .82rem;
+  line-height: 1.4;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  box-shadow: var(--shadow-sm);
+  transition: transform .25s cubic-bezier(.34, 1.56, .64, 1), opacity .25s;
+}
+.mascot__bubble.is-show { opacity: 1; transform: scale(1); }
+.mascot__bubble::after {
+  content: "";
+  position: absolute;
+  right: -13px;
+  top: 14px;
+  border: 7px solid transparent;
+  border-left-color: var(--surface);
+}
+/* 英雄区文字让位给看板娘；窄屏时她缩小，气泡改藏到她下巴下面 */
+@media (max-width: 720px) {
+  .hero { padding-top: 8px; }
+  .mascot { width: 116px; height: 116px; top: 0; right: 0; }
+  .hero__title, .hero__lead { padding-right: 120px; }
+  .mascot__bubble {
+    right: auto; top: auto; bottom: 0;
+    left: 50%;
+    transform: translate(-50%, 100%) scale(.6);
+    transform-origin: top center;
+    font-size: .74rem; max-width: 170px;
+  }
+  .mascot__bubble.is-show { transform: translate(-50%, 100%) scale(1); }
+  .mascot__bubble::after {
+    right: auto; top: -13px; bottom: auto; left: 50%;
+    transform: translateX(-50%);
+    border-left-color: transparent;
+    border-bottom-color: var(--surface);
+  }
+}
+/* ---------- 做题页看板娘（章节页 / 错题清零页共用 .mascot--quiz） ---------- */
+/* 她放在答题视图（#quizView）里面：交卷看结果时随视图一起消失，不挡结果卡。
+   宽屏（≥1240px）：答题内容最大 840px 居中，右侧有空白——fixed 站在内容右边缘外 14px；
+   窄屏（手机）：没有空白可站——缩小到 100px 站在卡片右上角，标题和题目导航条
+   用 padding-right 给她让位（.quiz--has-mascot 只加在有看板娘的那个视图上）。 */
+.quiz--has-mascot { position: relative; }
+.mascot--quiz { width: 100px; height: 100px; top: 2px; right: 2px; }
+@media (max-width: 1239px) {
+  .quiz--has-mascot .quiz__head,
+  .quiz--has-mascot .quiz__bar { padding-right: 108px; }
+}
+@media (min-width: 1240px) {
+  .mascot--quiz {
+    position: fixed;
+    top: 96px;
+    right: calc((100vw - 840px) / 2 - 190px);
+    width: 176px; height: 176px;
+  }
+}
+/* 窄屏做题页：她贴着屏幕右缘，首页那套「气泡在她正下方居中」会超出屏幕，
+   改成「气泡右对齐向下展开」，小三角仍然指向她 */
+@media (max-width: 720px) {
+  .mascot--quiz .mascot__bubble {
+    left: auto; right: 0;
+    transform: translateY(100%) scale(.6);
+    transform-origin: top right;
+  }
+  .mascot--quiz .mascot__bubble.is-show { transform: translateY(100%) scale(1); }
+  .mascot--quiz .mascot__bubble::after {
+    left: auto; right: 43px;
+    transform: none;
+  }
 }
 
 .bank-section { margin-top: 30px; }

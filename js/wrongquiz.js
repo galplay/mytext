@@ -358,6 +358,8 @@
     saveProg(item);
     renderQuestion();
     if (ok) UI.toast('回答正确！这道题已移出错题本');
+    // 答对放「天降米饭」庆祝，答错放「宕机」失败动画（页面没有看板娘时自动跳过）
+    if (window.Mascot) { if (ok) Mascot.rice(); else Mascot.fail(); }
   }
 
   function nextOrFinish() {

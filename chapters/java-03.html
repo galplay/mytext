@@ -56,7 +56,16 @@
     </noscript>
 
     <!-- ===== 答题视图 ===== -->
-    <section class="quiz" id="quizView">
+    <section class="quiz quiz--has-mascot" id="quizView">
+      <!-- 看板娘 DeepSeek 娘：宽屏时 fixed 站在内容右侧空白处；窄屏（手机）缩小成 100px
+           站在答题卡片右上角，标题和题目导航给她让位（样式见 css 的 .mascot--quiz）。
+           她在答题视图里面，所以看结果时不会出现。data-img-base 指到上一级目录的
+           立绘文件夹，因为章节页在 chapters/ 子目录里（答对一题她会放「天降米饭」） -->
+      <div class="mascot mascot--quiz" id="mascot" aria-hidden="true" data-img-base="../img/">
+        <div class="mascot__bubble" id="mascotBubble"></div>
+        <canvas class="mascot__canvas" id="mascotCanvas"></canvas>
+      </div>
+
       <div class="quiz__head">
         <h1 class="quiz__title">三、继承、多态与接口</h1>
         <p class="quiz__meta" id="quizMeta">本章共 38 题</p>
@@ -185,5 +194,7 @@
   <script src="../js/store.js"></script>
   <script src="../js/util.js"></script>
   <script src="../js/quiz.js"></script>
+  <!-- 看板娘（独立于刷题逻辑，加载失败也不影响页面） -->
+  <script src="../js/mascot.js"></script>
 </body>
 </html>

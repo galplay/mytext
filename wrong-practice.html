@@ -66,7 +66,14 @@
     </section>
 
     <!-- ===== 答题视图（与章节练习页同一套布局） ===== -->
-    <section class="quiz" id="quizView" hidden>
+    <section class="quiz quiz--has-mascot" id="quizView" hidden>
+      <!-- 看板娘 DeepSeek 娘：宽屏 fixed 站内容右侧空白处，窄屏缩小站卡片右上角
+           （样式见 css 的 .mascot--quiz）；在答题视图里，看结果时不会出现 -->
+      <div class="mascot mascot--quiz" id="mascot" aria-hidden="true">
+        <div class="mascot__bubble" id="mascotBubble"></div>
+        <canvas class="mascot__canvas" id="mascotCanvas"></canvas>
+      </div>
+
       <div class="quiz__head">
         <h1 class="quiz__title">错题清零练习</h1>
         <p class="quiz__meta" id="quizMeta">正在收集错题…</p>
@@ -195,5 +202,7 @@
   <script src="js/store.js"></script>
   <script src="js/util.js"></script>
   <script src="js/wrongquiz.js"></script>
+  <!-- 看板娘（独立于刷题逻辑，加载失败也不影响页面） -->
+  <script src="js/mascot.js"></script>
 </body>
 </html>
