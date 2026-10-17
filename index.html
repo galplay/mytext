@@ -4,8 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="theme-color" content="#4f46e5">
-  <meta name="description" content="在线刷题（后端版）：Web 前端题库与 Java 程序设计题库，按章节练习，答完立刻判分；账号、答题进度、错题本、收藏与笔记保存在服务器，支持多账号排行榜与好友 PK。">
-  <title>在线刷题 · Web 前端 / Java</title>
+  <meta name="description" content="DS刷题（后端版）：Web 前端题库与 Java 程序设计题库，按章节练习，答完立刻判分；账号、答题进度、错题本、收藏与笔记保存在服务器，支持多账号排行榜与好友 PK。">
+  <title>DS刷题 · Web 前端 / Java</title>
   <link rel="stylesheet" href="css/style.css">
   <!-- 主题 / 字号预置：在首帧绘制前应用，避免刷新闪烁 -->
   <script>
@@ -27,9 +27,9 @@
   <header class="topbar">
     <div class="topbar__inner">
       <a class="brand" href="index.html" aria-label="返回首页">
-        <span class="brand__logo" aria-hidden="true">题</span>
+        <span class="brand__logo" aria-hidden="true">卷</span>
         <span class="brand__text">
-          <strong class="brand__title">在线刷题</strong>
+          <strong class="brand__title">DS刷题</strong>
           <small class="brand__sub">Web 前端 · Java 程序设计</small>
         </span>
       </a>
@@ -51,13 +51,15 @@
     </noscript>
 
     <section class="hero">
-      <h1 class="hero__title">挑一个章节，开始刷题</h1>
+      <h1 class="hero__title">DS刷题</h1>
       <p class="hero__lead">
-        每题选好答案提交后立刻判分，答错能看到正确答案与解析；做到一半关掉页面也没关系——
-        登录后账号和全部学习数据都保存在服务器的数据库里，换台电脑、换个浏览器登录还能接着刷；
-        不登录的游客进度保存在本机浏览器，同样可以正常刷题。
+        和大肥鱼一起刷题，赚取大米饭填满她的胃吧！保存进度，随时随地，想刷就刷！GOOD~
       </p>
       <div class="hero__stats" id="heroStats"></div>
+
+      <!-- hero 右侧空白处的装饰大图（img/hero-girl.png，白底已抠成透明）：
+           纯装饰、不挡文字，看板娘仍然站在它前面 -->
+      <img class="hero__art" src="img/hero-girl.png" alt="" aria-hidden="true">
 
       <!-- 看板娘 DeepSeek 娘：站在右上角空白处，会眨眼摇摆，点她会开心（js/mascot.js） -->
       <div class="mascot" id="mascot" aria-hidden="true">

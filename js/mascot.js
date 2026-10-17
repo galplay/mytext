@@ -432,17 +432,101 @@
     }, 20000);
   }
 
-  /* ---------- 交互：点一下 → 眯眼笑 + 弹跳 + 说话 ---------- */
+  /* ---------- 点击音效：摸她一下，就播放 img/mascot-voice.m4a 录音 ----------
+     第一次点击时才创建 <audio>（懒加载，不点就不下载这 27KB）；
+     再点一下从头播（currentTime 归零），音量收到 0.9 免得吓到人；
+     浏览器自动播放策略偶尔会拒绝 play()，catch 掉保持安静，不影响页面 */
+  var voice = null;
+  function playVoice() {
+    try {
+      if (!voice) {
+        voice = document.createElement('audio');
+        voice.src = IMG_BASE + 'mascot-voice.m4a'; // 章节页 IMG_BASE 是 ../img/，自动指对目录
+        voice.preload = 'auto';
+        voice.volume = 0.9;
+        box.appendChild(voice); // 挂在她身上，audio 不放 controls 不占画面
+      }
+      voice.currentTime = 0;
+      var p = voice.play();
+      if (p && p.catch) p.catch(function () { /* 被拦截就只出文字气泡 */ });
+    } catch (e) { /* 老浏览器缺函数也不报错 */ }
+  }
+
+  /* ---------- 交互：点一下 → 眯眼笑 + 弹跳 + 说话；按住拖动 → 松开停在新位置 ---------- */
 
   box.addEventListener('click', function () {
+    // 刚拖完抬手会顺手触发一次 click：300ms 内的点击忽略，只当"放好了"
+    if (drag.lastEnd && performance.now() - drag.lastEnd < 300) return;
     if (!open || rice.active || dead.active) return; // 米饭 / 宕机序列播放中不打断
     st.happyUntil = performance.now() + 1800;
     st.squash = 1;
     say(pick(LINES.pet));
+    playVoice(); // 摸头音效
   });
   box.addEventListener('mouseenter', function () {
     if (!open || box.dataset.greeted) return;
     box.dataset.greeted = '1';
     say(pick(LINES.hi)); // 第一次鼠标经过时打个招呼
   });
+
+  /* 拖动（鼠标 / 单指 / 触屏笔通用）：
+     1. pointerdown 记下"按住点"相对她左上角的偏移，并 setPointerCapture 抓牢指针
+        —— 哪怕手指滑出她身体外面，事件也照样回到 box，不会中途丢失；
+     2. pointermove 超过 6px 才算真在拖（防止手抖一下把"点她"误判成"拖她"），
+        之后把 box 的 top/right 换成 left/top 定位，每帧跟随手指；
+     3. 用「视口坐标 + 滚动量」算页面绝对位置再扣掉她所在容器（.hero / 做题区，
+        都是 position:relative）的位置，所以怎么滚动页面都能精准贴手；
+     4. 始终 clamp 在可视范围内，不会拖出屏幕找不回来；松手就停在那儿（不做动画）。
+     注意 CSS 里 .mascot 的 touch-action 是 none：手指在她身上滑动时页面不跟着滚。 */
+  var drag = { on: false, moved: false, lastEnd: 0 };
+  var DRAG_TH = 6; // 拖动判定阈值（px）
+
+  function parentLeftTop(el) { // 容器（相对定位的 .hero / 做题区）左上角的页面绝对坐标
+    var b = el.getBoundingClientRect();
+    return { l: b.left + window.pageXOffset, t: b.top + window.pageYOffset };
+  }
+
+  box.addEventListener('pointerdown', function (ev) {
+    drag.on = true; drag.moved = false;
+    var b = box.getBoundingClientRect();
+    drag.ox = ev.clientX - b.left; // 按住点离她左边缘多远
+    drag.oy = ev.clientY - b.top;  // 离上边缘多远
+    drag.pid = ev.pointerId;
+    try { box.setPointerCapture(ev.pointerId); } catch (e) { /* 老浏览器没有就退回普通点击 */ }
+  });
+
+  box.addEventListener('pointermove', function (ev) {
+    if (!drag.on || ev.pointerId !== drag.pid) return;
+    var b = box.getBoundingClientRect();
+    var cx = ev.clientX - b.left - drag.ox; // 相对上一次位置该移动的距离
+    var cy = ev.clientY - b.top - drag.oy;
+    if (!drag.moved && Math.abs(cx) + Math.abs(cy) < DRAG_TH) return; // 还没过阈值：只当按住了
+    drag.moved = true;
+    ev.preventDefault();
+    var p = parentLeftTop(box.offsetParent || box); // 她的定位基准容器（页面绝对坐标）
+    var l = ev.pageX - drag.ox - p.l; // 目标 left = 手指页面位置 − 按住偏移 − 容器位置
+    var t = ev.pageY - drag.oy - p.t;
+    // 容器左上角当前在视口里的位置（减掉滚动量），用来把她 clamp 在屏幕内不拖丢
+    var pvL = p.l - window.pageXOffset, pvT = p.t - window.pageYOffset;
+    l = Math.max(-pvL, Math.min(window.innerWidth - box.offsetWidth - pvL, l));
+    t = Math.max(-pvT, Math.min(window.innerHeight - box.offsetHeight - pvT, t));
+    box.style.left = l + 'px';
+    box.style.top = t + 'px';
+    box.style.right = 'auto'; // 覆盖 CSS 里写死的 right / bottom，否则两者打架
+    box.style.bottom = 'auto';
+    if (reduced) draw(performance.now()); // 无动画循环的场合补画一帧，防止画布留白
+  });
+
+  function endDrag(ev) { // pointerup（松手）和 pointercancel（被系统打断）都走这里
+    if (!drag.on || (ev && ev.pointerId !== drag.pid)) return;
+    drag.on = false;
+    try { box.releasePointerCapture(drag.pid); } catch (e) { /* 没抓到就不用放 */ }
+    if (drag.moved) {
+      drag.lastEnd = performance.now(); // 记时间：随后的 click 要忽略
+      say('嘿嘿，我会动啦~', 1800);     // 拖动了才打招呼，普通点按还是走摸头台词
+    }
+    drag.moved = false;
+  }
+  box.addEventListener('pointerup', endDrag);
+  box.addEventListener('pointercancel', endDrag);
 })();

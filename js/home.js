@@ -5,6 +5,22 @@
   var banks = window.QUIZ_BANKS || {};
   var BANK_ORDER = ['web', 'java'];
 
+  /* 章节封面图：键是章节 id，值是图片路径（都在 img/covers/ 下，按章节 id 命名）。
+     想换某个章节的封面，直接替换同名图片文件即可；
+     没配图或图片加载失败的章节，卡片自动保持原来的纯文字样式。
+     排图思路：按主色调连续过渡分块 —— Web 区冷蓝→紫，Java 区灰→暗→绿→暖，
+     相邻卡片颜色相近，整页看起来就不会杂乱。 */
+  var COVERS = {
+    'web-1':  'img/covers/web-1.jpg',   'web-2':  'img/covers/web-2.jpg',
+    'web-3':  'img/covers/web-3.jpg',   'web-4':  'img/covers/web-4.jpg',
+    'web-5':  'img/covers/web-5.jpg',   'web-6':  'img/covers/web-6.jpg',
+    'java-1': 'img/covers/java-1.jpg',  'java-2': 'img/covers/java-2.jpg',
+    'java-3': 'img/covers/java-3.jpg',  'java-4': 'img/covers/java-4.jpg',
+    'java-5': 'img/covers/java-5.jpg',  'java-6': 'img/covers/java-6.jpg',
+    'java-7': 'img/covers/java-7.jpg',  'java-8': 'img/covers/java-8.jpg',
+    'java-9': 'img/covers/java-9.jpg',  'java-10': 'img/covers/java-10.jpg'
+  };
+
   function $(id) { return document.getElementById(id); }
 
   function el(tag, cls, text) {
@@ -64,6 +80,21 @@
 
         var card = el('a', 'chapter-card');
         card.href = chapterFile(bankId, idx);
+
+        // 有封面图就先塞一张铺满卡片的 <img>（在文字下层），并给卡片加 has-cover 类换叠字样式
+        var coverSrc = COVERS[c.id];
+        if (coverSrc) {
+          var cover = el('img', 'chapter-card__cover');
+          cover.src = coverSrc;
+          cover.alt = '';          // 装饰图，读屏软件跳过
+          cover.loading = 'lazy';  // 懒加载：滚到附近才请求，首页打开更快
+          cover.onerror = function () { // 图挂了 → 撤掉封面，退回纯文字卡
+            card.classList.remove('has-cover');
+            if (cover.parentNode) cover.parentNode.removeChild(cover);
+          };
+          card.classList.add('has-cover');
+          card.insertBefore(cover, card.firstChild);
+        }
 
         var top = el('div', 'chapter-card__top');
         top.appendChild(el('h3', 'chapter-card__title', c.title));

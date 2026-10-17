@@ -310,7 +310,7 @@ for (const bank of BANKS) {
       .replaceAll('{{BANK_ID}}', bank.id)
       .replaceAll('{{CHAPTER_ID}}', c.id)
       .replaceAll('{{TOTAL}}', String(total))
-      .replaceAll('{{PAGE_DESC}}', `在线刷题：${bank.short}「${c.title}」共 ${total} 题，支持答题判分、错题重做与进度保存。`);
+      .replaceAll('{{PAGE_DESC}}', `DS刷题：${bank.short}「${c.title}」共 ${total} 题，支持答题判分、错题重做与进度保存。`);
     fs.writeFileSync(outHtml, html, 'utf8');
     pageFiles.push(path.basename(outHtml));
   });

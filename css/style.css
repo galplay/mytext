@@ -119,6 +119,41 @@ body {
 a { color: var(--primary); text-decoration: none; }
 a:hover { text-decoration: underline; }
 
+/* ---------- 做题页背景：DeepSeek 构成主义海报（img/quiz-bg.jpg） ----------
+   只在带 .page--quiz 的页面生效（16 个章节页 + 错题清零练习页）。
+   做法是「背景图上盖一层半透明页面色」：海报透出氛围，字又不受影响；
+   深色主题换深色罩。url 以 CSS 文件自身位置解析，所以 ../img/ 对
+   根目录页面和 chapters/ 子目录页面是同一个文件，不用各写一遍。
+   background-attachment: fixed 让海报钉在屏幕上，答题滚动时不跟着晃。 */
+.page--quiz {
+  background-image:
+    linear-gradient(rgba(244, 245, 251, .78), rgba(244, 245, 251, .78)),
+    url(../img/quiz-bg.jpg);
+  background-size: cover;
+  background-position: center top;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+}
+[data-theme="dark"] .page--quiz {
+  background-image:
+    linear-gradient(rgba(17, 19, 28, .86), rgba(17, 19, 28, .86)),
+    url(../img/quiz-bg.jpg);
+}
+/* 电脑宽屏（≥1100px）：海报不再铺满整页被裁切，而是「原图比例、占满屏高、
+   贴右站好」——一张完整海报；题栏整体左移半个海报宽，落在左边空白正中。
+   海报宽 = 屏高 × 800/1200 ≈ 66.7vh，所以左移 34vh、题栏最宽留到 760px。 */
+@media (min-width: 1100px) {
+  .page--quiz {
+    background-image: url(../img/quiz-bg.jpg);
+    background-size: auto 100%;
+    background-position: right center;
+  }
+  .page--quiz .view {
+    max-width: min(760px, calc(100vw - 68vh - 32px));
+    transform: translateX(-34vh);
+  }
+}
+
 code, pre, kbd { font-family: var(--mono); }
 
 :focus-visible { outline: none; box-shadow: var(--focus); border-radius: 6px; }
@@ -274,11 +309,51 @@ code, pre, kbd { font-family: var(--mono); }
 .hero { padding: 26px 4px 6px; position: relative; } /* relative：给看板娘做定位基准 */
 .hero__title {
   margin: 0 0 8px;
-  font-size: clamp(1.6rem, 4.5vw, 2.1rem);
+  font-size: clamp(2rem, 5.5vw, 2.7rem);   /* 主标题加大 */
+  font-weight: 900;                        /* 加粗到最粗一档 */
+  color: #16337f;                          /* 深蓝主标题色 */
   letter-spacing: .01em;
 }
+[data-theme="dark"] .hero__title { color: #8fb0ff; } /* 暗色背景下深蓝看不清，提亮成同色系亮蓝 */
 .hero__lead { margin: 0 0 14px; color: var(--text-soft); max-width: 56ch; }
 .hero__stats { display: flex; flex-wrap: wrap; gap: 8px; }
+
+/* hero 右侧空白处的装饰大图：贴在右下角、垫在看板娘（z-index:2）后面。
+   pointer-events:none 让它完全不挡文字选中和点击 */
+.hero__art {
+  position: absolute;
+  right: -30px;
+  bottom: -18px;
+  height: 340px;
+  max-width: 46%;
+  object-fit: contain;
+  object-position: bottom right;
+  z-index: 1;
+  pointer-events: none;
+  user-select: none;
+  opacity: .95;
+}
+[data-theme="dark"] .hero__art { opacity: .8; }
+@media (max-width: 1100px) {
+  /* 窄一点的屏幕没有空白可铺，缩成淡淡的背景水印，不抢正文 */
+  .hero__art { height: 210px; right: -40px; bottom: -10px; opacity: .16; }
+}
+
+/* 宽屏（≥1101px）下看板娘不再站右上角（会压住蓝发娘的图），
+   改成站到大图左侧的空白处，和她并排。页面内容容器最宽 1040px，
+   所以这套位置在大屏上算一次就够：大图高 300 → 宽 400，探出右缘 30，
+   实际占住右侧 370；看板娘 150 宽 + 9px 缝，共占右侧 529，
+   左边还剩 511，正文标题最宽约 450（56ch），谁都碰不到谁。 */
+@media (min-width: 1101px) {
+  .hero__art { height: 300px; right: -30px; }
+  .hero .mascot {
+    top: auto;
+    bottom: -12px;
+    right: 379px;      /* 紧贴大图左缘（370 + 9px 缝） */
+    width: 150px;
+    height: 150px;
+  }
+}
 
 .stat-chip {
   padding: 5px 12px;
@@ -299,7 +374,7 @@ code, pre, kbd { font-family: var(--mono); }
   height: 176px;
   z-index: 2;
   cursor: pointer;
-  touch-action: manipulation;
+  touch-action: none; /* 允许按住她拖动：手指在她身上滑动时页面不跟着滚 */
 }
 .mascot__canvas { display: block; width: 100%; height: 100%; }
 /* 台词气泡：默认藏在立绘左侧（小三角指向她），加 .is-show 弹出 */
@@ -462,6 +537,48 @@ code, pre, kbd { font-family: var(--mono); }
   box-shadow: var(--shadow);
   text-decoration: none;
 }
+
+/* 带封面的章节卡：图片铺满整卡，文字叠在图上；
+   ::after 铺一层"上浅下深"的渐变遮罩，保证白字在任何图上都能看清 */
+.chapter-card.has-cover {
+  position: relative;
+  overflow: hidden;       /* 裁掉图片超出圆角的部分 */
+  border: none;
+  min-height: 168px;
+}
+.chapter-card__cover {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  width: 100%; height: 100%;
+  object-fit: cover;      /* 等比放大裁切填满，不变形 */
+  object-position: center 30%; /* 横图裁进卡片时优先保住人物上半身 */
+  z-index: 0;
+  transition: transform .3s ease;
+}
+.chapter-card.has-cover:hover .chapter-card__cover { transform: scale(1.05); }
+.chapter-card.has-cover::after {
+  content: "";
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  z-index: 1;
+  pointer-events: none;   /* 遮罩不挡点击 */
+  background: linear-gradient(180deg,
+    rgba(10, 20, 35, .28) 0%,
+    rgba(10, 20, 35, .06) 42%,
+    rgba(10, 20, 35, .74) 100%);
+}
+/* 除封面图以外的内容全部抬到遮罩之上，改用白色系文字 */
+.chapter-card.has-cover > :not(.chapter-card__cover) { position: relative; z-index: 2; color: #fff; }
+.chapter-card.has-cover .chapter-card__count {
+  background: rgba(10, 20, 35, .45);
+  border-color: rgba(255, 255, 255, .35);
+  color: #fff;
+}
+.chapter-card.has-cover .chapter-card__meta { color: rgba(255, 255, 255, .86); }
+.chapter-card.has-cover .chapter-card__meta.is-new { color: rgba(255, 255, 255, .72); }
+.chapter-card.has-cover .chapter-card__cta { color: #fff; }
+.chapter-card.has-cover .progressbar { background: rgba(255, 255, 255, .28); }
+.chapter-card.has-cover .progressbar__fill { background: #fff; }
 
 .chapter-card__top { display: flex; align-items: flex-start; gap: 10px; justify-content: space-between; }
 .chapter-card__title { margin: 0; font-size: 1.02rem; }
@@ -749,12 +866,12 @@ a.maint-item__loc:hover { text-decoration: underline; }
 .maint-item__done-hint { margin-left: auto; color: var(--ok-strong); font-size: .8rem; font-weight: 600; }
 
 /* ---------- 答题页 ---------- */
-.quiz__head { padding: 6px 4px 14px; }
-.quiz__title { margin: 0 0 4px; font-size: clamp(1.35rem, 4vw, 1.7rem); }
+.quiz__head { padding: 4px 4px 10px; }
+.quiz__title { margin: 0 0 3px; font-size: clamp(1.25rem, 2.6vw, 1.5rem); }
 .quiz__meta { margin: 0; color: var(--text-soft); font-size: .9rem; }
 .quiz__meta strong { color: var(--primary); }
 
-.quiz__bar { display: flex; flex-wrap: wrap; gap: 8px; padding: 0 2px 14px; }
+.quiz__bar { display: flex; flex-wrap: wrap; gap: 8px; padding: 0 2px 10px; }
 .quiz__nav { display: flex; flex-wrap: wrap; gap: 8px; }
 .quiz__modes { display: flex; flex-wrap: wrap; gap: 8px; margin-left: auto; }
 
@@ -782,14 +899,14 @@ a.maint-item__loc:hover { text-decoration: underline; }
 
 /* 题目卡片 */
 .qcard {
-  padding: 22px;
+  padding: 16px 18px;
   border: 1px solid var(--border);
   border-radius: var(--radius);
   background: var(--surface);
   box-shadow: var(--shadow-sm);
   scroll-margin-top: 86px;
 }
-.qcard__tags { display: flex; gap: 8px; margin-bottom: 12px; }
+.qcard__tags { display: flex; gap: 8px; margin-bottom: 8px; }
 
 .tag {
   padding: 3px 11px;
@@ -802,8 +919,8 @@ a.maint-item__loc:hover { text-decoration: underline; }
 }
 .tag--soft { background: var(--surface-2); border-color: var(--border); color: var(--text-soft); }
 
-.qcard__body { font-size: 1.04rem; }
-.qcard__body p { margin: 0 0 10px; }
+.qcard__body { font-size: 1rem; }
+.qcard__body p { margin: 0 0 8px; }
 .qcard__body p:last-child { margin-bottom: 0; }
 
 /* 富文本内的代码 */
@@ -828,14 +945,14 @@ a.maint-item__loc:hover { text-decoration: underline; }
 }
 
 /* 选项 */
-.options { display: grid; gap: 10px; margin-top: 16px; }
+.options { display: grid; gap: 8px; margin-top: 12px; }
 
 .option {
   width: 100%;
   display: flex;
   align-items: flex-start;
   gap: 12px;
-  padding: 13px 15px;
+  padding: 10px 14px;
   border: 1.5px solid var(--border-strong);
   border-radius: var(--radius-sm);
   background: var(--surface);
@@ -1032,8 +1149,8 @@ a.maint-item__loc:hover { text-decoration: underline; }
   z-index: 30;
   display: flex;
   gap: 10px;
-  margin: 18px -16px -56px;
-  padding: 12px 16px calc(14px + env(safe-area-inset-bottom));
+  margin: 12px -16px -56px;
+  padding: 10px 16px calc(12px + env(safe-area-inset-bottom));
   background: color-mix(in srgb, var(--surface) 88%, transparent);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
