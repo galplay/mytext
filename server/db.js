@@ -4,7 +4,7 @@
  * 整个数据库就是本目录下的 data.db 一个文件：复制它即可备份/搬家，
  * 删掉它、下次启动会自动重建一个空库。
  *
- * 表结构（7 张表）：
+ * 表结构（8 张表）：
  *   users    账号：用户名、昵称、盐、密码散列、头像(JSON)、签名、注册时间
  *   sessions 登录会话：token → 用户名。浏览器保存 token，服务器凭它认人
  *   friends  好友关系（双向各存一行，如 小明→小红 和 小红→小明）
@@ -12,6 +12,7 @@
  *   stars    题目收藏
  *   notes    题目笔记
  *   chapters 每章进度：断点位置 pos、是否交卷 done、累计用时 acc、上次保存时间 last_ts
+ *   feedback 题目纠错反馈（维护日志）：全站公共数据，不分账号；name 为 NULL 表示游客提交
  *
  * 安全上的两个关键做法（答辩常被问）：
  *   1. 密码不存明文：用 Node 自带的 crypto.scrypt 加盐散列，库里只存「盐 + 散列值」。
@@ -87,6 +88,19 @@ db.exec(`
     acc     INTEGER NOT NULL DEFAULT 0,
     last_ts INTEGER NOT NULL DEFAULT 0,
     PRIMARY KEY (name, bank, chapter)
+  );
+
+  CREATE TABLE IF NOT EXISTS feedback (
+    id      TEXT PRIMARY KEY,
+    qid     TEXT NOT NULL,
+    bank    TEXT NOT NULL,
+    chapter TEXT NOT NULL,
+    qno     INTEGER NOT NULL DEFAULT 0,
+    type    TEXT NOT NULL,
+    text    TEXT NOT NULL,
+    name    TEXT,
+    done    INTEGER NOT NULL DEFAULT 0,
+    ts      INTEGER NOT NULL
   );
 `);
 
@@ -417,6 +431,53 @@ function leaderboard() {
   }));
 }
 
+/* ---------- 题目反馈（维护日志） ----------
+ * 全站公共数据：所有人看到的都是同一份列表，游客也能提交（name 存 NULL）。
+ * viewer 为当前登录用户名（未登录传 null），只用来算 mine（这条是不是我提的）。 */
+
+function feedbackRowToObj(r, viewer) {
+  return {
+    id: r.id, qid: r.qid, bank: r.bank, chapter: r.chapter, qNo: r.qno,
+    type: r.type, text: r.text,
+    user: r.name || '游客',
+    ts: r.ts, done: r.done === 1,
+    mine: !!viewer && r.name === viewer, // 只有本人（登录提交的那条）可以删除
+  };
+}
+
+/* 全部反馈，新的在前 */
+function feedbackList(viewer) {
+  return db.prepare('SELECT * FROM feedback ORDER BY ts DESC').all()
+    .map((r) => feedbackRowToObj(r, viewer));
+}
+
+/* 插入一条反馈（参数已由 server.js 校验过），返回新记录本身 */
+function feedbackInsert(item, name) {
+  const id = 'fb' + Date.now().toString(36) + crypto.randomBytes(3).toString('hex');
+  const ts = Date.now();
+  db.prepare(`INSERT INTO feedback (id, qid, bank, chapter, qno, type, text, name, done, ts)
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, ?)`)
+    .run(id, item.qid, item.bank, item.chapter, item.qNo | 0, item.type, item.text, name || null, ts);
+  return feedbackRowToObj(
+    { id, qid: item.qid, bank: item.bank, chapter: item.chapter, qno: item.qNo | 0,
+      type: item.type, text: item.text, name: name || null, done: 0, ts },
+    name // 以提交者身份换算：登录用户刚提的这条 mine = true
+  );
+}
+
+/* 标记 / 取消标记「已处理」（登录用户即可操作，本站维护者就是使用者） */
+function feedbackSetDone(id, done) {
+  const info = db.prepare('UPDATE feedback SET done = ? WHERE id = ?').run(done ? 1 : 0, id);
+  return info.changes > 0;
+}
+
+/* 删除反馈：SQL 里直接限定 name = 当前用户，游客的（name 为 NULL）谁都删不掉 */
+function feedbackRemove(id, name) {
+  if (!name) return false;
+  const info = db.prepare('DELETE FROM feedback WHERE id = ? AND name = ?').run(id, name);
+  return info.changes > 0;
+}
+
 /* ---------- 首页小统计 / 清空我的数据 ---------- */
 
 function overview() {
@@ -451,6 +512,10 @@ module.exports = {
   importData,
   myStats,
   leaderboard,
+  feedbackList,
+  feedbackInsert,
+  feedbackSetDone,
+  feedbackRemove,
   overview,
   clearMyData,
 };

@@ -64,7 +64,7 @@ http://localhost:3000
 
 ---
 
-## 三、数据库（server/db.js，7 张表）
+## 三、数据库（server/db.js，8 张表）
 
 | 表 | 存什么 |
 |---|---|
@@ -75,8 +75,9 @@ http://localhost:3000
 | `stars` | 题目收藏 |
 | `notes` | 题目笔记 |
 | `chapters` | 每章进度：断点 `pos`、交卷 `done`、累计用时 `acc`、上次保存时间 `last_ts` |
+| `feedback` | 题目纠错反馈（维护日志）：题目标识、类型、正文、提交人（游客为 NULL）、处理状态 |
 
-## 四、接口一览（server/server.js，共 16 条）
+## 四、接口一览（server/server.js，共 20 条）
 
 | 方法 路径 | 作用 |
 |---|---|
@@ -95,6 +96,10 @@ http://localhost:3000
 | `GET /api/leaderboard` | 全站排行榜数据 |
 | `GET /api/stats` | 注册人数（首页展示） |
 | `POST /api/clear-my-data` | 清空自己的全部学习数据 |
+| `POST /api/feedback` | 提交题目纠错 `{qid, bank, chapter, qNo, type, text}`（游客也可提交） |
+| `GET /api/feedback` | 维护日志列表（公开；登录时每条带 `mine` 标记） |
+| `POST /api/feedback/done` | 标记 / 取消「已处理」`{id, done}`（需登录） |
+| `POST /api/feedback/remove` | 删除反馈 `{id}`（仅限本人登录时提交的） |
 
 认证方式：请求头 `Authorization: Bearer <token>`；未登录访问受保护接口统一返回
 `401 {error:'请先登录'}`，前端收到 401 会自动退回游客身份并提示重新登录。

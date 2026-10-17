@@ -106,6 +106,20 @@
 
     <div id="bankSections"></div>
 
+    <!-- 题目维护日志：汇总大家在答题页提交的纠错反馈（题干 / 答案 / 解析），可直达原题 -->
+    <section class="maintlog" id="maintLog" aria-labelledby="maintLogTitle">
+      <div class="section-head">
+        <h2 id="maintLogTitle">题目维护日志</h2>
+        <span>答题页点「这道题有问题？」提交的反馈会集中到这里</span>
+      </div>
+      <div class="maintlog__bar">
+        <nav class="maintlog__filters" id="maintFilters" aria-label="反馈筛选"></nav>
+        <span class="maintlog__meta" id="maintMeta"></span>
+      </div>
+      <div class="maintlog__list" id="maintList"></div>
+      <p class="maintlog__empty" id="maintEmpty" hidden>还没有收到任何反馈。在任意一题下方点「这道题有问题？」，就能把题干、答案或解析的疑似错误提交给维护者。</p>
+    </section>
+
     <div class="home-footer-tools">
       <span>游客的数据保存在本机浏览器；登录后数据保存在服务器（server/data.db）。</span>
       <button class="link-danger" id="clearAll" type="button">清除当前身份记录</button>

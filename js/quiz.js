@@ -8,6 +8,7 @@
  *   - 筛选：只看错题 / 只看收藏；交卷后出结果页，可重做错题
  *   - 深链接：首页「错题本 / 收藏夹」可带 ?q=<题id> 直达某题、?mode=wrong|star 只看筛选题
  *   - 题目笔记：每题一个自动保存的笔记框，写到一半切题 / 刷新都不会丢
+ *   - 题目反馈：每题下方可向维护者纠错（题干/答案/解析），集中进首页「维护日志」
  */
 (function () {
   'use strict';
@@ -220,6 +221,36 @@
     $('qNoteState').textContent = text ? '已保存' : '';
   }
 
+  /* ---------- 题目反馈（题干 / 答案 / 解析纠错 → 首页「维护日志」） ---------- */
+
+  var fbType = null; // 面板里当前选中的反馈类型（question | answer | analysis）
+
+  function fbTypeButtons() {
+    return Array.prototype.slice.call(document.querySelectorAll('.qcard__fb-type'));
+  }
+
+  /* 收起面板并清空未提交的草稿：反馈没有"半成品"概念，切题就重置，
+     避免把上一题写的纠错误提交到下一题 */
+  function closeFbPanel() {
+    $('fbPanel').hidden = true;
+    $('fbToggle').setAttribute('aria-expanded', 'false');
+    fbType = null;
+    $('fbText').value = '';
+    $('fbState').textContent = '';
+    fbTypeButtons().forEach(function (b) { b.classList.remove('is-active'); });
+  }
+
+  function renderFeedback(q) {
+    var n = Store.feedback.countOf(q.id);
+    var countEl = $('fbCount');
+    countEl.hidden = !n;
+    countEl.textContent = n ? '已收到 ' + n + ' 条反馈' : '';
+    if ($('qFeedback').dataset.qid !== q.id) {
+      $('qFeedback').dataset.qid = q.id;
+      closeFbPanel(); // 换题：面板收起、草稿清空
+    }
+  }
+
   function renderButtons(q, rec) {
     var submitted = rec && rec.ok !== undefined;
     var submitBtn = $('submitBtn');
@@ -255,6 +286,7 @@
     renderVerdictAndAnalysis(q, rec);
     renderStar(q);
     renderNote(q);
+    renderFeedback(q);
     renderButtons(q, rec);
     renderMeta();
     renderModes();
@@ -497,6 +529,36 @@
     $('qNoteState').textContent = '';
     UI.toast('已清空本题笔记');
   });
+
+  // 题目反馈：展开/收起、类型单选、提交（提交人身份由 Store 记录）
+  $('fbToggle').addEventListener('click', function () {
+    var willOpen = $('fbPanel').hidden;
+    $('fbPanel').hidden = !willOpen;
+    $('fbToggle').setAttribute('aria-expanded', willOpen ? 'true' : 'false');
+    if (willOpen) $('fbText').focus();
+  });
+  fbTypeButtons().forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      fbType = btn.dataset.fbtype;
+      fbTypeButtons().forEach(function (b) { b.classList.toggle('is-active', b === btn); });
+    });
+  });
+  $('fbSubmit').addEventListener('click', function () {
+    var q = currentQ();
+    if (!q) return;
+    var res = Store.feedback.add({
+      qid: q.id,
+      bank: bankId,
+      chapter: chapterId,
+      qNo: currentIndex() + 1, // 记「本章第几题」：题库重分组后日志里的编号才解释得通
+      type: fbType,
+      text: $('fbText').value,
+    });
+    if (!res.ok) { UI.toast(res.err); return; }
+    closeFbPanel();
+    renderFeedback(q); // 刷新「已收到 N 条反馈」徽标
+    UI.toast('反馈已提交，首页「维护日志」可查看');
+  });
   $('submitBtn').addEventListener('click', function () {
     var action = $('submitBtn').dataset.action;
     if (action === 'submit') submitCurrent();
@@ -565,7 +627,7 @@
     card.addEventListener('touchstart', function (e) {
       // 在笔记框里滑动（写字、选词）不参与切题手势
       tracking = e.touches.length === 1 && $('pad').hidden &&
-        !(e.target && e.target.closest && e.target.closest('.qcard__note'));
+        !(e.target && e.target.closest && e.target.closest('.qcard__note, .qcard__feedback'));
       if (!tracking) return;
       startX = e.touches[0].clientX;
       startY = e.touches[0].clientY;

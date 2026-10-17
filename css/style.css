@@ -562,6 +562,76 @@ a.tool-card { text-decoration: none; }
 
 .tool-empty { margin: 0; color: var(--text-faint); font-size: .88rem; }
 
+/* ---------- 首页 · 题目维护日志 ---------- */
+.maintlog { margin-top: 26px; }
+.maintlog__bar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.maintlog__filters { display: flex; flex-wrap: wrap; gap: 8px; }
+.maintlog__meta { margin-left: auto; color: var(--text-faint); font-size: .82rem; }
+.maintlog__list { display: flex; flex-direction: column; gap: 10px; }
+.maintlog__empty {
+  margin: 0;
+  padding: 18px 16px;
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius-sm);
+  color: var(--text-faint);
+  font-size: .88rem;
+  line-height: 1.7;
+}
+
+.maint-item {
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--bad-border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+}
+.maint-item.is-done { border-left-color: var(--ok-border); opacity: .78; }
+
+.maint-item__head {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.maint-tag {
+  flex: none;
+  padding: 2px 9px;
+  border-radius: 999px;
+  font-size: .76rem;
+  font-weight: 700;
+}
+.maint-tag.is-question { background: var(--bad-soft); color: var(--bad-strong); }
+.maint-tag.is-answer { background: var(--star-soft); color: var(--star); }
+.maint-tag.is-analysis { background: var(--primary-soft); color: var(--primary-strong); }
+.maint-tag.is-other { background: var(--surface-2); color: var(--text-soft); }
+
+.maint-item__loc { color: var(--primary); font-size: .84rem; font-weight: 600; }
+a.maint-item__loc:hover { text-decoration: underline; }
+.maint-item__who { margin-left: auto; color: var(--text-faint); font-size: .78rem; white-space: nowrap; }
+
+.maint-item__text {
+  margin: 8px 0 0;
+  color: var(--text);
+  font-size: .9rem;
+  line-height: 1.65;
+  white-space: pre-wrap; /* 保留反馈里的换行，仍按纯文本显示 */
+  word-break: break-word;
+}
+.maint-item__foot {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 9px;
+}
+.maint-item__done-hint { margin-left: auto; color: var(--ok-strong); font-size: .8rem; font-weight: 600; }
+
 /* ---------- 答题页 ---------- */
 .quiz__head { padding: 6px 4px 14px; }
 .quiz__title { margin: 0 0 4px; font-size: clamp(1.35rem, 4vw, 1.7rem); }
@@ -773,6 +843,71 @@ a.tool-card { text-decoration: none; }
   margin-top: 8px;
 }
 .qcard__note-hint { color: var(--text-faint); font-size: .78rem; }
+
+/* 题目反馈：题卡底部的折叠条 + 展开后的纠错表单（与笔记区同一视觉语言） */
+.qcard__feedback { margin-top: 10px; }
+.qcard__fb-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 9px 14px;
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--text-soft);
+  font-family: inherit;
+  font-size: .86rem;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+.qcard__fb-toggle:hover { border-color: var(--star); color: var(--text); }
+.qcard__fb-toggle-icon { color: var(--star); font-size: .9rem; }
+.qcard__fb-count {
+  margin-left: auto;
+  padding: 2px 9px;
+  border-radius: 999px;
+  background: var(--star-soft);
+  color: var(--star);
+  font-size: .76rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.qcard__fb-panel {
+  margin-top: 8px;
+  padding: 12px 14px 13px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+}
+.qcard__fb-hint { margin: 0 0 10px; font-size: .82rem; line-height: 1.6; color: var(--text-faint); }
+.qcard__fb-hint strong { color: var(--text-soft); }
+.qcard__fb-types { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
+.qcard__fb-text {
+  display: block;
+  width: 100%;
+  min-height: 72px;
+  padding: 11px 13px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--text);
+  font-family: inherit;
+  font-size: .92rem;
+  line-height: 1.6;
+  resize: vertical;
+}
+.qcard__fb-text:focus { outline: none; border-color: var(--primary); box-shadow: var(--focus); }
+.qcard__fb-text::placeholder { color: var(--text-faint); }
+.qcard__fb-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 9px;
+}
+.qcard__fb-state { color: var(--text-faint); font-size: .78rem; }
 
 /* 作答按钮区（移动端吸底） */
 .quiz__actions {

@@ -22,6 +22,8 @@
  *   quiz.u.guest.*           游客的 progress / stars / notes（未登录时使用）
  *   quiz.theme / quiz.font   主题、字号（不区分身份的本机偏好）
  *   quiz.fold                首页题库区的折叠状态
+ *   quiz.feedback            题目反馈（维护日志）：游客存这里；登录用户存服务器，
+ *                            本机只留一份列表镜像（反馈是提交给站点的公共数据）
  *
  * 累计用时 acc：与服务器同一套规则——距上次保存 10 分钟内视为连续作答，
  * 把这段间隔累加进 acc；间隔过大（挂机）只重新计时。服务器计算的为准，
@@ -59,6 +61,7 @@ window.Store = (function () {
 
   var cachedUser = readJson('user', null); // 登录用户信息缓存（顶栏头像、昵称等渲染要用）
   var cloud = null;    // 登录用户的云端数据在本机的一份镜像 { records, stars, notes, chapters }
+  var cloudFeedback = null; // 服务器反馈列表（维护日志）在本机的一份镜像，数组、新的在前
   var snap = {};       // 每章快照： '题库/章节' → { q: { 题id: 单题标准串 }, pos, done }
   var noteTimers = {}; // 笔记防抖计时器（按题）
   var noteQueue = {};  // 待发送的笔记（按题）
@@ -71,7 +74,7 @@ window.Store = (function () {
     if (window.UI && UI.renderAccount) UI.renderAccount(); // 登录态变化后刷新顶栏账号位
   }
 
-  function resetCloud() { cloud = null; snap = {}; }
+  function resetCloud() { cloud = null; snap = {}; cloudFeedback = null; }
 
   function fillCloud(data) {
     cloud = {
@@ -133,21 +136,27 @@ window.Store = (function () {
     });
   }
 
-  /* 页面打开时调用：登录用户先从服务器把自己的全部数据拉下来（拉完再渲染）。
-     游客、失败都能正常继续，页面照常可用。 */
+  /* 页面打开时调用：登录用户先从服务器把自己的全部学习数据拉下来（拉完再渲染）。
+     游客、失败都能正常继续，页面照常可用。
+     反馈列表（维护日志）顺带一起拉：它不是关键数据，失败了静默处理，列表暂时为空。 */
   function ready() {
     if (!isServer()) return Promise.resolve();
-    return api('GET', '/my-data').then(function (res) {
-      if (res.ok) {
-        fillCloud(res.data);
-        if (res.data.user) setSession(token(), res.data.user);
-        refreshAccountUI();
-      } else if (res.status === 401) {
-        sessionExpired();
-      } else {
-        if (window.UI) UI.toast('无法连接服务器，登录数据暂时无法同步：' + res.err);
-      }
-    });
+    return Promise.all([
+      api('GET', '/my-data').then(function (res) {
+        if (res.ok) {
+          fillCloud(res.data);
+          if (res.data.user) setSession(token(), res.data.user);
+          refreshAccountUI();
+        } else if (res.status === 401) {
+          sessionExpired();
+        } else {
+          if (window.UI) UI.toast('无法连接服务器，登录数据暂时无法同步：' + res.err);
+        }
+      }),
+      api('GET', '/feedback').then(function (res) {
+        if (res.ok) cloudFeedback = Array.isArray(res.data.list) ? res.data.list : [];
+      }),
+    ]);
   }
 
   /* ---------- 游客模式：全部写在本机 localStorage ---------- */
@@ -315,6 +324,33 @@ window.Store = (function () {
         else saveErrToast('保存失败：' + res.err);
       }
     });
+  }
+
+  /* ---------- 反馈（维护日志）辅助：游客写本机 / 登录用户写服务器 + 本机镜像 ---------- */
+
+  var FB_TYPES = ['question', 'answer', 'analysis'];
+  var FB_TEXT_MAX = 500;
+
+  /* 拼一条标准反馈记录（两种模式共用，字段与纯静态版完全一致） */
+  function fbMakeRec(item, text, user) {
+    return {
+      id: 'fb' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+      qid: String(item.qid || ''),
+      bank: String(item.bank || ''),
+      chapter: String(item.chapter || ''),
+      qNo: item.qNo | 0,
+      type: item.type,
+      text: text,
+      user: user, // 'guest' 或用户名
+      ts: Date.now(),
+      done: false,
+    };
+  }
+
+  function fbIndexOf(id) {
+    if (!cloudFeedback) return -1;
+    for (var i = 0; i < cloudFeedback.length; i++) if (cloudFeedback[i].id === id) return i;
+    return -1;
   }
 
   /* ---------- 笔记：更新本机缓存后防抖发送（500ms），关页面前兜底再发一次 ---------- */
@@ -563,6 +599,122 @@ window.Store = (function () {
         if (!cloud) return; // 没连上服务器：这轮先不保存
         if (text && text.trim()) cloud.notes[qid] = text; else delete cloud.notes[qid];
         scheduleNoteSync(qid); // 防抖 500ms 后发服务器
+      },
+    },
+
+    /* ---------- 题目反馈（首页「维护日志」的数据来源） ----------
+       反馈是「提交给站点」的公共数据，不属于某个账号：
+       - 游客：与纯静态版一致，存在本机 quiz.feedback；
+       - 登录用户：存在服务器的 feedback 表（全体使用者聚合），本机留一份镜像。
+         写入用「乐观更新 + 后台同步」：先改镜像并同步返回（界面不等网络），
+         再发请求，失败回滚并提示，下次打开页面会重新拉到服务器的权威列表。 */
+    feedback: {
+      TYPES: FB_TYPES,
+      TEXT_MAX: FB_TEXT_MAX,
+
+      /* 全部反馈，新的在前 */
+      list: function () {
+        if (!isServer()) {
+          var arr = readJson('feedback', []);
+          return Array.isArray(arr) ? arr.slice().sort(function (a, b) { return (b.ts || 0) - (a.ts || 0); }) : [];
+        }
+        return (cloudFeedback || []).slice();
+      },
+
+      /* 某道题已有几条反馈（答题页显示「已有 N 条」用，避免重复提交） */
+      countOf: function (qid) {
+        var n = 0;
+        this.list().forEach(function (f) { if (f && f.qid === qid) n++; });
+        return n;
+      },
+
+      /* 新增一条：item = { qid, bank, chapter, qNo, type, text }
+         返回 { ok:true, rec } 或 { ok:false, err }；提交人自动记当前身份 */
+      add: function (item) {
+        item = item || {};
+        if (this.TYPES.indexOf(item.type) === -1) return { ok: false, err: '请先选择反馈类型' };
+        var text = String(item.text == null ? '' : item.text).trim();
+        if (!text) return { ok: false, err: '请描述一下问题所在' };
+        if (text.length > this.TEXT_MAX) text = text.slice(0, this.TEXT_MAX);
+
+        if (!isServer()) {
+          var rec = fbMakeRec(item, text, 'guest');
+          var arr = readJson('feedback', []);
+          if (!Array.isArray(arr)) arr = [];
+          arr.push(rec);
+          write('feedback', JSON.stringify(arr));
+          return { ok: true, rec: rec };
+        }
+
+        // 登录：先在镜像里放一条临时记录（乐观），服务器确认后用权威记录替换
+        var mine = fbMakeRec(item, text, cachedUser ? cachedUser.name : 'guest');
+        mine.mine = true; // 自己刚提的，允许删除
+        if (!cloudFeedback) cloudFeedback = [];
+        cloudFeedback.unshift(mine);
+        api('POST', '/feedback', {
+          qid: mine.qid, bank: mine.bank, chapter: mine.chapter,
+          qNo: mine.qNo, type: mine.type, text: mine.text,
+        }).then(function (res) {
+          var i = fbIndexOf(mine.id);
+          if (res.ok) {
+            if (i >= 0 && cloudFeedback) cloudFeedback[i] = res.data.rec; // id / 时间戳以服务器为准
+          } else {
+            if (i >= 0 && cloudFeedback) cloudFeedback.splice(i, 1); // 回滚
+            if (res.status === 401) sessionExpired();
+            else saveErrToast('反馈没有保存成功：' + res.err);
+          }
+        });
+        return { ok: true, rec: mine };
+      },
+
+      /* 维护日志里标记「已处理 / 未处理」（登录用户即可操作，本站维护者就是使用者） */
+      setDone: function (id, done) {
+        if (!isServer()) {
+          var arr = readJson('feedback', []);
+          if (!Array.isArray(arr)) return false;
+          var hit = false;
+          arr.forEach(function (f) { if (f && f.id === id) { f.done = !!done; hit = true; } });
+          if (hit) write('feedback', JSON.stringify(arr));
+          return hit;
+        }
+        var i = fbIndexOf(id);
+        if (i < 0 || !cloudFeedback) return false;
+        var old = cloudFeedback[i].done;
+        cloudFeedback[i].done = !!done;
+        api('POST', '/feedback/done', { id: id, done: !!done }).then(function (res) {
+          if (!res.ok) {
+            var k = fbIndexOf(id);
+            if (k >= 0 && cloudFeedback) cloudFeedback[k].done = old; // 失败回滚
+            if (res.status === 401) sessionExpired();
+            else saveErrToast('状态没有更新成功：' + res.err);
+          }
+        });
+        return true;
+      },
+
+      /* 删除一条（误提交 / 重复提交时清理）：登录时服务器只允许删自己提交的 */
+      remove: function (id) {
+        if (!isServer()) {
+          var arr = readJson('feedback', []);
+          if (!Array.isArray(arr)) return false;
+          var kept = arr.filter(function (f) { return !f || f.id !== id; });
+          var changed = kept.length !== arr.length;
+          if (changed) write('feedback', JSON.stringify(kept));
+          return changed;
+        }
+        var i = fbIndexOf(id);
+        if (i < 0 || !cloudFeedback) return false;
+        var removed = cloudFeedback[i];
+        if (removed.mine === false) return false; // 不是自己提的（界面本就不显示按钮，这里双保险）
+        cloudFeedback.splice(i, 1);
+        api('POST', '/feedback/remove', { id: id }).then(function (res) {
+          if (!res.ok) {
+            if (fbIndexOf(id) < 0 && cloudFeedback) cloudFeedback.splice(Math.min(i, cloudFeedback.length), 0, removed);
+            if (res.status === 401) sessionExpired();
+            else saveErrToast('删除没有成功：' + res.err);
+          }
+        });
+        return true;
       },
     },
 

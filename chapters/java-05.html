@@ -99,6 +99,30 @@
             </div>
           </div>
         </details>
+
+        <!-- 题目反馈：题库由多人整理难免有错，在这里纠错 → 首页「维护日志」集中处理 -->
+        <div class="qcard__feedback" id="qFeedback">
+          <button class="qcard__fb-toggle" id="fbToggle" type="button" aria-expanded="false" aria-controls="fbPanel">
+            <span class="qcard__fb-toggle-icon" aria-hidden="true">⚠</span>
+            <span>这道题有问题？向维护者反馈</span>
+            <span class="qcard__fb-count" id="fbCount" hidden></span>
+          </button>
+          <div class="qcard__fb-panel" id="fbPanel" hidden>
+            <p class="qcard__fb-hint">觉得<strong>题干、答案或解析</strong>有误？选个类型、写下你的判断依据。
+              反馈会集中显示在首页「维护日志」，方便统一勘误。</p>
+            <div class="qcard__fb-types" role="group" aria-label="反馈类型">
+              <button class="chip-btn qcard__fb-type" type="button" data-fbtype="question">题干有误</button>
+              <button class="chip-btn qcard__fb-type" type="button" data-fbtype="answer">答案有误</button>
+              <button class="chip-btn qcard__fb-type" type="button" data-fbtype="analysis">解析有误</button>
+            </div>
+            <textarea class="qcard__fb-text" id="fbText" rows="3" spellcheck="false" maxlength="500"
+              placeholder="例如：答案应是 B——只有 width 能设置单元格宽度；line-height 只影响行高…（最多 500 字）"></textarea>
+            <div class="qcard__fb-bar">
+              <span class="qcard__fb-state" id="fbState" aria-live="polite"></span>
+              <button class="btn btn--primary btn--sm" id="fbSubmit" type="button">提交反馈</button>
+            </div>
+          </div>
+        </div>
       </article>
 
       <div class="quiz__actions">

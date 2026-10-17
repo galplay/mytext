@@ -267,12 +267,147 @@
     });
   }
 
+  /* ---------- 维护日志（题目纠错反馈） ---------- */
+
+  var FB_TYPES = { question: '题干有误', answer: '答案有误', analysis: '解析有误' };
+  var maintFilter = 'all'; // all = 全部 · open = 待处理 · done = 已处理
+
+  /* 定位反馈来自哪一页：用记录里自带的 bank/chapter 反查章节序号，
+     拼出章节页地址并带 ?q=<题id> 深链接（和错题本用的是同一套机制） */
+  function locateFeedback(fb) {
+    var bank = banks[fb.bank];
+    if (!bank) return null;
+    for (var i = 0; i < bank.chapters.length; i++) {
+      var c = bank.chapters[i];
+      if (c.id === fb.chapter) {
+        return { page: chapterFile(fb.bank, i), title: bank.short + ' · ' + c.title };
+      }
+    }
+    return null;
+  }
+
+  /* 时间戳 → 「10-17 14:05」样式的短标签 */
+  function fmtTime(ts) {
+    if (!ts) return '';
+    var d = new Date(ts);
+    function p(n) { return (n < 10 ? '0' : '') + n; }
+    return (d.getMonth() + 1) + '-' + p(d.getDate()) + ' ' + p(d.getHours()) + ':' + p(d.getMinutes());
+  }
+
+  /* 提交人显示名：游客统一显示「游客」（本机记录里存的是 'guest'，服务器上也是） */
+  function fbUser(fb) {
+    return fb.user === 'guest' ? '游客' : (fb.user || '匿名');
+  }
+
+  function renderMaintFilters(list, openCount) {
+    var bar = $('maintFilters');
+    bar.innerHTML = '';
+    var defs = [
+      { key: 'all', label: '全部', n: list.length },
+      { key: 'open', label: '待处理', n: openCount },
+      { key: 'done', label: '已处理', n: list.length - openCount },
+    ];
+    defs.forEach(function (d) {
+      var btn = el('button', 'chip-btn' + (maintFilter === d.key ? ' is-active' : ''));
+      btn.type = 'button';
+      btn.textContent = d.label + ' ' + d.n;
+      btn.addEventListener('click', function () {
+        maintFilter = d.key;
+        renderMaint();
+      });
+      bar.appendChild(btn);
+    });
+  }
+
+  function renderMaint() {
+    var listHost = $('maintList');
+    var emptyHost = $('maintEmpty');
+    if (!listHost || !emptyHost) return;
+
+    var all = Store.feedback.list();
+    var openCount = all.filter(function (f) { return !f.done; }).length;
+    renderMaintFilters(all, openCount);
+    $('maintMeta').textContent = all.length
+      ? '共 ' + all.length + ' 条 · 待处理 ' + openCount + ' 条（' +
+        (Store.session.get() !== 'guest' ? '保存在服务器，全体使用者聚合' : '保存在本机浏览器') + '）'
+      : '';
+
+    var shown = all.filter(function (f) {
+      if (maintFilter === 'open') return !f.done;
+      if (maintFilter === 'done') return !!f.done;
+      return true;
+    });
+
+    listHost.innerHTML = '';
+    emptyHost.hidden = all.length > 0;
+    if (!all.length) return;
+    if (!shown.length) {
+      listHost.appendChild(el('p', 'tool-empty', maintFilter === 'open' ? '没有待处理的反馈。' : '没有已处理的反馈。'));
+      return;
+    }
+
+    shown.forEach(function (fb) {
+      var item = el('div', 'maint-item' + (fb.done ? ' is-done' : ''));
+
+      var head = el('div', 'maint-item__head');
+      var typeLabel = FB_TYPES[fb.type] || '其他';
+      var tag = el('span', 'maint-tag is-' + (FB_TYPES[fb.type] ? fb.type : 'other'), typeLabel);
+      head.appendChild(tag);
+
+      var loc = locateFeedback(fb);
+      if (loc) {
+        var link = el('a', 'maint-item__loc', loc.title + ' 第 ' + fb.qNo + ' 题 →');
+        link.href = loc.page + '?q=' + encodeURIComponent(fb.qid);
+        link.title = '打开原题（题号：' + fb.qid + '）';
+        head.appendChild(link);
+      } else {
+        head.appendChild(el('span', 'maint-item__loc', '章节 ' + fb.chapter + ' 第 ' + fb.qNo + ' 题（题库已改版，无法定位）'));
+      }
+      head.appendChild(el('span', 'maint-item__who', fbUser(fb) + ' · ' + fmtTime(fb.ts)));
+      item.appendChild(head);
+
+      var body = el('p', 'maint-item__text');
+      body.textContent = fb.text; // 用户输入一律 textContent，防止把内容当 HTML 执行
+      item.appendChild(body);
+
+      var foot = el('div', 'maint-item__foot');
+      var doneBtn = el('button', 'chip-btn chip-btn--ghost', fb.done ? '撤销标记' : '标记已处理');
+      doneBtn.type = 'button';
+      doneBtn.addEventListener('click', function () {
+        Store.feedback.setDone(fb.id, !fb.done);
+        renderMaint();
+        UI.toast(fb.done ? '已改回待处理' : '已标记为处理完');
+      });
+      foot.appendChild(doneBtn);
+
+      // 删除：登录用户提交的反馈只有本人能删（服务器同规则）；游客数据在本机可自由清理
+      if (fb.mine !== false) {
+        var delBtn = el('button', 'link-danger', '删除');
+        delBtn.type = 'button';
+        delBtn.addEventListener('click', function () {
+          if (!window.confirm('删除这条「' + typeLabel + '」反馈？删除后无法恢复。')) return;
+          Store.feedback.remove(fb.id);
+          renderMaint();
+          UI.toast('已删除该条反馈');
+        });
+        foot.appendChild(delBtn);
+      }
+
+      if (fb.done) foot.appendChild(el('span', 'maint-item__done-hint', '✓ 已处理'));
+      item.appendChild(foot);
+
+      listHost.appendChild(item);
+    });
+  }
+
   function init() {
     if (!window.QUIZ_BANKS || !banks.web || !banks.java) {
       document.getElementById('bankSections').innerHTML =
         '<p class="notice notice--error">题库数据没有加载成功：请确认 data/web.js、data/java.js 存在，并通过 index.html 打开本页。</p>';
       var tools = document.getElementById('myTools');
       if (tools) tools.hidden = true; // 数据都没加载上，错题本/收藏夹也就无从谈起
+      var maint = document.getElementById('maintLog');
+      if (maint) maint.hidden = true; // 同理，反馈无法定位到题，这一区也先收起
       return;
     }
 
@@ -282,6 +417,7 @@
       render();
       bindTools();
       updateRankCard();
+      renderMaint(); // 反馈镜像也在 ready() 里拉好了，直接渲染维护日志
     });
 
     var clearBtn = document.getElementById('clearAll');

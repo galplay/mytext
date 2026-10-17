@@ -320,6 +320,51 @@ const api = {
     sendJson(res, 200, db.overview());
   },
 
+  /* ---------- 题目反馈（维护日志）：全站公共数据 ---------- */
+
+  /* 提交一条反馈：游客也能提（name 存 NULL，显示为「游客」） */
+  'POST /api/feedback': (req, res, body, token, user) => {
+    const qid = String(body.qid || '');
+    const bank = String(body.bank || '');
+    const chapter = String(body.chapter || '');
+    if (!QID_RE.test(qid) || !BANK_RE.test(bank) || !CHAPTER_RE.test(chapter) || chapter.indexOf(bank + '-') !== 0) {
+      return sendJson(res, 400, { error: '题目定位参数不正确' });
+    }
+    if (['question', 'answer', 'analysis'].indexOf(body.type) < 0) {
+      return sendJson(res, 400, { error: '反馈类型不正确' });
+    }
+    if (!Number.isInteger(body.qNo) || body.qNo < 1 || body.qNo > 10000) {
+      return sendJson(res, 400, { error: '题号不正确' });
+    }
+    const text = String(body.text || '').trim();
+    if (!text) return sendJson(res, 400, { error: '请先写下你的判断依据' });
+    if (text.length > 500) return sendJson(res, 400, { error: '反馈最多 500 字' });
+    const rec = db.feedbackInsert({ qid, bank, chapter, qNo: body.qNo, type: body.type, text }, user ? user.name : null);
+    sendJson(res, 200, { ok: true, rec });
+  },
+
+  /* 反馈列表：公开接口（游客也能看待处理清单）；登录时每条会带 mine 标记 */
+  'GET /api/feedback': (req, res, body, token, user) => {
+    sendJson(res, 200, { list: db.feedbackList(user ? user.name : null) });
+  },
+
+  /* 标记 / 取消标记「已处理」：登录用户即可（本站的维护者就是使用者） */
+  'POST /api/feedback/done': (req, res, body, token, user) => {
+    if (!user) return sendJson(res, 401, { error: '请先登录' });
+    const id = String(body.id || '');
+    if (!id || id.length > 64) return sendJson(res, 400, { error: '参数不正确' });
+    if (!db.feedbackSetDone(id, !!body.done)) return sendJson(res, 400, { error: '这条反馈不存在（可能已被删除）' });
+    sendJson(res, 200, { ok: true });
+  },
+
+  /* 删除反馈：仅限本人登录时提交的（SQL 里限定 name，游客提交的删不掉） */
+  'POST /api/feedback/remove': (req, res, body, token, user) => {
+    if (!user) return sendJson(res, 401, { error: '请先登录' });
+    const id = String(body.id || '');
+    if (!db.feedbackRemove(id, user.name)) return sendJson(res, 400, { error: '只能删除自己登录时提交的反馈' });
+    sendJson(res, 200, { ok: true });
+  },
+
   /* 清空我的全部学习数据（账号保留） */
   'POST /api/clear-my-data': (req, res, body, token, user) => {
     if (!user) return sendJson(res, 401, { error: '请先登录' });
