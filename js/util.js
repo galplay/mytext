@@ -110,6 +110,55 @@ window.UI = (function () {
     renderAccount();
   }
 
+  /* ---------- 做题页角立绘「跟页脚」 ----------
+     配套 css/style.css 里 ≥1100px 的 .page--quiz::before/::after：
+     它们的 bottom 读 CSS 变量 --chan-bottom。这里在页面滚动 / 窗口缩放时算出
+     「视口底边到页脚顶缘被抬起了多少像素」（gap），写到 body 的 --chan-bottom 上：
+       · 页脚还没滚进视野 → gap = 0，立绘贴屏幕底；
+       · 页脚顶缘露出来   → gap > 0，立绘被托着上移，图片底边始终挨着页脚顶缘。
+     只在 .page--quiz 且宽屏（≥1100px）时干活；用 rAF 节流，滚动时每帧最多算一次，
+     监听都带 passive（只读不拦默认行为），不会拖慢滚动。 */
+  function initChanFooterFollow() {
+    var body = document.body;
+    if (!body || !body.classList.contains('page--quiz')) return;
+    var footer = document.querySelector('.footer');
+    if (!footer) return;
+    var mq = window.matchMedia('(min-width: 1100px)');
+
+    function update() {
+      // 立绘只在宽屏出现；窄屏把变量清零，免得窗口拉宽后用到旧值闪一下
+      if (!mq.matches) {
+        body.style.setProperty('--chan-bottom', '0px');
+        return;
+      }
+      var footerTop = footer.getBoundingClientRect().top;
+      var vpH = document.documentElement.clientHeight;
+      var gap = Math.max(0, vpH - footerTop);
+      body.style.setProperty('--chan-bottom', gap + 'px');
+    }
+
+    var raf = 0;
+    function onRequest() {
+      if (raf) return;
+      raf = requestAnimationFrame(function () { raf = 0; update(); });
+    }
+
+    update();
+    window.addEventListener('scroll', onRequest, { passive: true });
+    window.addEventListener('resize', onRequest, { passive: true });
+    // 补两个「页面不动、页脚却会动」的时机：
+    // 1) load —— 字体、图片加载完，排版会塌实一次；
+    // 2) ResizeObserver 盯正文列 .view —— 宽屏下题目一屏放得下、根本不滚动，
+    //    但每换一题题卡高度都不同，.view 一长一短页脚就跟着上移下移，
+    //    RO 在尺寸变化那一帧回调，比定时器轮询省资源也更及时。
+    window.addEventListener('load', onRequest);
+    var main = document.querySelector('.view');
+    if (window.ResizeObserver && main) {
+      new ResizeObserver(onRequest).observe(main);
+    }
+  }
+  initChanFooterFollow();
+
   return {
     toast: toast,
     fmtDur: fmtDur,

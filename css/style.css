@@ -11,13 +11,13 @@
   --primary-soft: #eef2ff;
   --primary-border: #c7d2fe;
 
-  --bg: #f4f5fb;
-  --surface: #ffffff;
-  --surface-2: #f8f9fd;
+  --bg: #f4f0e4;
+  --surface: #fffdf7;
+  --surface-2: #faf6ea;
   --text: #1f2333;
   --text-soft: #5b6070;
   --text-faint: #8b90a0;
-  --border: #e3e5ef;
+  --border: #e6e1d0;
   --border-strong: #c9cde0;
 
   --ok: #15803d;
@@ -54,7 +54,7 @@
   --primary-soft: #262a45;
   --primary-border: #3d4270;
 
-  --bg: #11131c;
+  --bg: #0b0e1a;
   --surface: #1b1e2c;
   --surface-2: #202435;
   --text: #e8eaf3;
@@ -116,6 +116,44 @@ body {
   transition: background-color .2s ease, color .2s ease;
 }
 
+/* ---------- 全站氛围底：白天米白纸感 / 夜晚星空黑 ----------
+   白天：米白基色上叠两层——一层极淡的暖色渐变（纸上光感），
+   一层内嵌 SVG 的 feTurbulence 噪点（不用图片文件，一行 url 就是
+   一张 240px 无缝纸纹，opacity .05 细到若有若无，只添质感不抢字）。
+   夜晚：几层 1~1.5px 的白点 radial-gradient 当星星，各自配不同的
+   background-size（260/300/340…互质错开），重复起来就不像整齐的点阵；
+   最底一层深蓝到黑的细微渐变当夜空。星星只给 .6~.85 透明度，微微发光感。
+   做题页 .page--quiz 自己会覆盖 background，海报照常显示，互不打架。 */
+body {
+  background-image:
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><filter id='p'><feTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/></filter><rect width='240' height='240' filter='url(%23p)' opacity='0.05'/></svg>"),
+    linear-gradient(165deg, #f7f3e8 0%, #f4f0e4 55%, #efe9d9 100%);
+  background-attachment: fixed, fixed;
+}
+[data-theme="dark"] body {
+  background-image:
+    radial-gradient(1px 1px at 34px 49px, rgba(255, 255, 255, .95), transparent 60%),
+    radial-gradient(1.5px 1.5px at 96px 22px, rgba(200, 219, 255, .8), transparent 60%),
+    radial-gradient(1px 1px at 141px 96px, rgba(255, 255, 255, .75), transparent 60%),
+    radial-gradient(2px 2px at 210px 60px, rgba(180, 200, 255, .55), transparent 60%),
+    radial-gradient(1.5px 1.5px at 232px 173px, rgba(255, 255, 255, .85), transparent 60%),
+    radial-gradient(1px 1px at 78px 214px, rgba(220, 232, 255, .7), transparent 60%),
+    radial-gradient(1px 1px at 160px 260px, rgba(255, 255, 255, .6), transparent 60%),
+    radial-gradient(2px 2px at 300px 120px, rgba(255, 255, 255, .5), transparent 60%),
+    radial-gradient(1.5px 1.5px at 196px 268px, rgba(255, 255, 255, .8), transparent 60%),
+    radial-gradient(1px 1px at 296px 33px, rgba(255, 255, 255, .9), transparent 60%),
+    radial-gradient(1px 1px at 44px 300px, rgba(210, 224, 255, .75), transparent 60%),
+    radial-gradient(1.5px 1.5px at 315px 246px, rgba(255, 255, 255, .65), transparent 60%),
+    radial-gradient(1px 1px at 122px 322px, rgba(255, 255, 255, .8), transparent 60%),
+    radial-gradient(2px 2px at 250px 310px, rgba(190, 210, 255, .45), transparent 60%),
+    linear-gradient(180deg, #131a35 0%, #0b0e1a 46%, #05070f 100%);
+  background-size: 340px 360px, 300px 320px, 380px 400px, 260px 300px,
+    360px 340px, 320px 280px, 400px 380px, 280px 340px, 350px 300px,
+    310px 370px, 290px 330px, 370px 350px, 330px 310px, 270px 290px, cover;
+  background-attachment: fixed, fixed, fixed, fixed, fixed, fixed, fixed, fixed,
+    fixed, fixed, fixed, fixed, fixed, fixed, fixed;
+}
+
 a { color: var(--primary); text-decoration: none; }
 a:hover { text-decoration: underline; }
 
@@ -124,10 +162,11 @@ a:hover { text-decoration: underline; }
    做法是「背景图上盖一层半透明页面色」：海报透出氛围，字又不受影响；
    深色主题换深色罩。url 以 CSS 文件自身位置解析，所以 ../img/ 对
    根目录页面和 chapters/ 子目录页面是同一个文件，不用各写一遍。
-   background-attachment: fixed 让海报钉在屏幕上，答题滚动时不跟着晃。 */
+   background-attachment: fixed 让窄屏那层「水印海报」钉在屏幕上，滚动不晃；
+   宽屏（≥1100px）会用下面的规则把它改成随页面滚动，见宽屏块注释。 */
 .page--quiz {
   background-image:
-    linear-gradient(rgba(244, 245, 251, .78), rgba(244, 245, 251, .78)),
+    linear-gradient(rgba(244, 240, 228, .78), rgba(244, 240, 228, .78)),
     url(../img/quiz-bg.jpg);
   background-size: cover;
   background-position: center top;
@@ -136,22 +175,58 @@ a:hover { text-decoration: underline; }
 }
 [data-theme="dark"] .page--quiz {
   background-image:
-    linear-gradient(rgba(17, 19, 28, .86), rgba(17, 19, 28, .86)),
+    linear-gradient(rgba(11, 14, 26, .86), rgba(11, 14, 26, .86)),
     url(../img/quiz-bg.jpg);
 }
-/* 电脑宽屏（≥1100px）：海报不再铺满整页被裁切，而是「原图比例、占满屏高、
-   贴右站好」——一张完整海报；题栏整体左移半个海报宽，落在左边空白正中。
-   海报宽 = 屏高 × 800/1200 ≈ 66.7vh，所以左移 34vh、题栏最宽留到 760px。 */
+/* 电脑宽屏（≥1100px）：背景只留干净的纸感渐变（亮：米白；暗：深蓝星空底），
+   不再铺整张立绘。蓝发娘改为「左右下角各钉一张」——见下面的 ::before/::after。 */
 @media (min-width: 1100px) {
   .page--quiz {
-    background-image: url(../img/quiz-bg.jpg);
-    background-size: auto 100%;
-    background-position: right center;
+    background-image: linear-gradient(165deg, #f7f3e8 0%, #f4f0e4 55%, #efe9d9 100%);
   }
-  .page--quiz .view {
-    max-width: min(760px, calc(100vw - 68vh - 32px));
-    transform: translateX(-34vh);
+  [data-theme="dark"] .page--quiz {
+    background-image: linear-gradient(180deg, #131a35 0%, #0b0e1a 46%, #05070f 100%);
   }
+  /* 左右下角各一张蓝发娘（img/quiz-chan-corner.png，2048 原图压到 512 透明底）。
+     三条规矩对应三个需求：
+     1)「钉在屏幕下角、滚动不动」→ position: fixed 贴 bottom 两角。
+        fixed 元素浏览器会单独合成一层，滚动时只是搬运现成图层、不重画，
+        所以比 background-attachment: fixed（老式钉背景，滚动容易掉帧）更顺滑；
+     2)「图片和题目互不遮挡」→ 题栏全站最宽 840px 水平居中，屏幕两侧各剩
+        (100vw - 840px) / 2 的空白，宽度取「屏高 14%」「140px 封顶」和
+        「这半侧空白再让 40px」三者里最小的一个：永远塞得进两侧空白、
+        还留 40px 缝，几何上不可能压到题目和「题号/上一题/下一题」按钮；
+        1100px 屏宽时每张约 90px，小屏小、大屏最多也就 140px，
+        高度也小，正好待在页脚上方那一小块角落，不伸进内容区。
+     3)「绝不挡操作」→ pointer-events:none 让鼠标直接穿过去，点不到她也碍不着别人。
+        z-index 取 2：她在正文（页脚是无定位的普通流，等效 z-index:0）之上——
+        滚到底时图片压在脚注栏上层、浮在提醒栏上面；而顶栏(40)、弹窗(60/80)、
+        跳转链接(100)等都比她高，看板娘(2)在 DOM 里排在伪元素之后也压在她上面，
+        所以关键交互永远不被她挡住（题目栏居中 840px，本来就和她在几何上不相交）。
+     4)「滚到底时跟着快捷键提醒栏往上走」→ bottom 不再是 0，而是读一个
+        CSS 变量 --chan-bottom（js/util.js 里在 scroll/resize 时算好写到 body 上）：
+        数值 = 视口底边到页脚顶缘被"抬起来"了多少像素。页脚还没露头时
+        变量是 0px，她贴屏幕底；页脚一露顶，她就被同一个变量托着往上走，
+        图片底边永远挨着页脚顶缘（var 的 fallback 0px 保证脚本没跑也不塌）。 */
+  .page--quiz::before,
+  .page--quiz::after {
+    content: '';
+    position: fixed;
+    bottom: var(--chan-bottom, 0px);
+    z-index: 2;
+    pointer-events: none;
+    --chan: min(14vh, 140px, calc((100vw - 840px) / 2 - 40px));
+    width: var(--chan);
+    height: var(--chan);
+    background: url(../img/quiz-chan-corner.png) no-repeat bottom center / contain;
+  }
+  .page--quiz::before { left: 0; }
+  .page--quiz::after { right: 0; }
+  /* 全站页脚文字栏本来是 1040px，比 840px 的题目栏宽——立绘按题目栏让位，
+     就会正好压在页脚右侧的快捷键说明文字和「返回」链接上。做题页把页脚
+     收到和题目同宽 840px：立绘两侧各让 40px 的空白里，页脚文字永远进不来，
+     图片只压在页脚的底色条上（用户要的「浮在提醒栏上面」），不挡任何字和链接。 */
+  .page--quiz .footer__inner { max-width: 840px; }
 }
 
 code, pre, kbd { font-family: var(--mono); }
@@ -429,7 +504,8 @@ code, pre, kbd { font-family: var(--mono); }
 }
 /* ---------- 做题页看板娘（章节页 / 错题清零页共用 .mascot--quiz） ---------- */
 /* 她放在答题视图（#quizView）里面：交卷看结果时随视图一起消失，不挡结果卡。
-   宽屏（≥1240px）：答题内容最大 840px 居中，右侧有空白——fixed 站在内容右边缘外 14px；
+   宽屏（≥1240px）：海报贴右占满屏高（宽≈66.7vh），她 fixed 站在海报左缘
+   往里一点的海报底部——既不压题栏文字，也像站在海报前面；
    窄屏（手机）：没有空白可站——缩小到 100px 站在卡片右上角，标题和题目导航条
    用 padding-right 给她让位（.quiz--has-mascot 只加在有看板娘的那个视图上）。 */
 .quiz--has-mascot { position: relative; }
@@ -441,8 +517,9 @@ code, pre, kbd { font-family: var(--mono); }
 @media (min-width: 1240px) {
   .mascot--quiz {
     position: fixed;
-    top: 96px;
-    right: calc((100vw - 840px) / 2 - 190px);
+    top: 84px; /* 顶栏（含进度条）之下 */
+    right: 20px;
+    bottom: auto; /* 右下角让给钉屏的蓝发娘立绘（.page--quiz::after），她站右上 */
     width: 176px; height: 176px;
   }
 }
@@ -794,6 +871,77 @@ a.tool-card { text-decoration: none; }
 .tool-start__icon { flex: none; font-size: .8rem; }
 .tool-start__label { flex: 1; min-width: 0; }
 .tool-start__go { flex: none; font-size: .84rem; opacity: .9; }
+
+/* ---------- 首页 · 综合测评入口 ---------- */
+.examzone { margin-top: 26px; }
+.examzone__card {
+  padding: 18px 18px 20px;
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--primary);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+}
+.examzone__head h2 {
+  margin: 0;
+  font-size: 1.12rem;
+}
+.examzone__desc {
+  margin: 6px 0 0;
+  color: var(--text-faint);
+  font-size: .86rem;
+  line-height: 1.7;
+}
+.examzone__body {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 14px;
+}
+.examzone__label { color: var(--text-faint); font-size: .86rem; }
+.examzone__chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.examzone__go { margin-left: auto; }
+
+/* ---------- 综合测评 · 选量卡片（exam.html） ---------- */
+.pickcard {
+  margin-top: 16px;
+  padding: 20px 18px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+}
+.pickcard__title { margin: 0 0 6px; font-size: 1.05rem; }
+.pickcard__hint {
+  margin: 0 0 14px;
+  color: var(--text-faint);
+  font-size: .88rem;
+  line-height: 1.75;
+}
+.pickcard__chips { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 16px; }
+.pickcard__row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+.pickcard__label { font-size: .9rem; }
+.pickcard__input {
+  width: 110px;
+  padding: 9px 12px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+  font-size: .95rem;
+}
+.pickcard__input:focus-visible { outline: none; box-shadow: var(--focus); }
+.pickcard__unit { color: var(--text-faint); font-size: .88rem; }
+
+/* 选量页的大号快捷按钮：和普通 chip-btn 同色系，只是更高一档 */
+.chip-btn--lg { padding: 11px 22px; font-size: 1rem; }
 
 /* ---------- 首页 · 题目维护日志 ---------- */
 .maintlog { margin-top: 26px; }
@@ -1674,6 +1822,12 @@ kbd {
 .rank-no.is-top { color: var(--star); }
 
 .rank-user { display: flex; align-items: center; gap: 10px; min-width: 150px; }
+/* 排行榜头像/昵称链接（点击进 TA 的主页）：颜色跟普通文字一致、不加下划线，
+   悬停变主题色——一眼就知道能点，又不会把表格弄得花 */
+.rank-user__link { display: inline-flex; align-items: center; color: inherit; text-decoration: none; }
+.rank-user__link:hover { color: var(--primary); }
+.friend-row__link { display: flex; align-items: center; gap: 12px; color: inherit; text-decoration: none; min-width: 0; }
+.friend-row__link:hover strong { color: var(--primary); }
 .rank-user__text { display: flex; flex-direction: column; line-height: 1.3; min-width: 0; }
 .rank-user__name { color: var(--text-faint); font-size: .76rem; }
 .rank-num { white-space: nowrap; }

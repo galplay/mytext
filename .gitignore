@@ -7,3 +7,6 @@ server/data.db-wal
 Thumbs.db
 Desktop.ini
 .DS_Store
+
+# 本地运行日志（服务器 console 重定向，不入库）
+server/server.log

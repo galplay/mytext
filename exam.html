@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#4f46e5">
+  <meta name="description" content="综合测评：从 web 与 Java 两个题库随机抽题，题量自选（10/25/50/100 或自定义），成绩提交即同步回原章节。">
+  <title>综合测评 · DS刷题</title>
+  <link rel="stylesheet" href="css/style.css">
+  <!-- 主题 / 字号预置：在首帧绘制前应用，避免刷新闪烁 -->
+  <script>
+    (function () {
+      try {
+        var saved = localStorage.getItem('quiz.theme');
+        var theme = saved || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+        document.documentElement.setAttribute('data-theme', theme);
+        if (localStorage.getItem('quiz.font') === 'large') {
+          document.documentElement.classList.add('font-large');
+        }
+      } catch (e) { /* 隐私模式下 localStorage 不可用时忽略 */ }
+    })();
+  </script>
+</head>
+<body class="page page--quiz">
+  <a class="skip-link" href="#view">跳到主要内容</a>
+
+  <header class="topbar">
+    <div class="topbar__inner">
+      <a class="brand" href="index.html" aria-label="返回题库首页">
+        <span class="brand__logo" aria-hidden="true">卷</span>
+        <span class="brand__text">
+          <strong class="brand__title">DS刷题</strong>
+          <small class="brand__sub">综合测评</small>
+        </span>
+      </a>
+      <div class="topbar__tools">
+        <button class="icon-btn" id="fontToggle" type="button" title="切换字号（大字模式）" aria-label="切换字号">
+          <span aria-hidden="true">Aa</span>
+        </button>
+        <button class="icon-btn" id="themeToggle" type="button" title="切换深色 / 浅色主题" aria-label="切换主题">
+          <span aria-hidden="true" data-theme-icon>🌙</span>
+        </button>
+      </div>
+      <div class="topbar__account" id="topbarAccount"></div>
+    </div>
+    <div class="topbar__progress">
+      <div class="progressbar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="globalProgressBar">
+        <span class="progressbar__fill"></span>
+      </div>
+    </div>
+  </header>
+
+  <main id="view" class="view view--quiz" tabindex="-1">
+    <noscript>
+      <p class="notice notice--error">本页面依赖浏览器原生 JavaScript，请开启 JavaScript 后重新打开。</p>
+    </noscript>
+
+    <!-- 题库数据没加载上时的兜底提示 -->
+    <section class="quiz" id="noticeView" hidden>
+      <div class="quiz__head">
+        <h1 class="quiz__title">综合测评</h1>
+        <p class="notice notice--error" style="margin-top:14px">题库数据没有加载成功：请确认 data/web.js、data/java.js 存在，并通过站点首页打开本页。</p>
+        <p style="margin-top:14px"><a class="btn btn--primary" href="index.html">返回章节列表</a></p>
+      </div>
+    </section>
+
+    <!-- ===== 选量视图：进入页面先选题量，点「开始测评」随机抽题 ===== -->
+    <section class="quiz" id="pickView">
+      <div class="quiz__head">
+        <h1 class="quiz__title">综合测评</h1>
+        <p class="quiz__meta" id="pickPoolMeta">正在统计题库…</p>
+      </div>
+
+      <div class="pickcard">
+        <h2 class="pickcard__title">选择题量</h2>
+        <p class="pickcard__hint">点一个快捷数量，或自己填一个；开始后从两个题库里<strong>随机抽题、每题最多出现一次</strong>。
+          已提交的答案会同步回该题的原章节（答对的错题也会自动移出错题本）。</p>
+        <div class="pickcard__chips" id="pickChips" role="group" aria-label="快捷题量"></div>
+        <div class="pickcard__row">
+          <label class="pickcard__label" for="pickInput">自定义题量</label>
+          <input class="pickcard__input" id="pickInput" type="number" min="1" inputmode="numeric"
+            placeholder="比如 30" aria-label="自定义题量（数字）">
+          <span class="pickcard__unit">道</span>
+        </div>
+        <button class="btn btn--primary btn--wide" id="pickStart" type="button">开始测评 →</button>
+      </div>
+    </section>
+
+    <!-- ===== 答题视图（与章节练习页同一套布局） ===== -->
+    <section class="quiz quiz--has-mascot" id="quizView" hidden>
+      <!-- 看板娘 DeepSeek 娘：宽屏 fixed 站内容右侧空白处，窄屏缩小站卡片右上角
+           （样式见 css 的 .mascot--quiz）；在答题视图里，看结果时不会出现 -->
+      <div class="mascot mascot--quiz" id="mascot" aria-hidden="true">
+        <div class="mascot__bubble" id="mascotBubble"></div>
+        <canvas class="mascot__canvas" id="mascotCanvas"></canvas>
+      </div>
+
+      <div class="quiz__head">
+        <h1 class="quiz__title">综合测评</h1>
+        <p class="quiz__meta" id="quizMeta">正在随机抽题…</p>
+      </div>
+
+      <div class="quiz__bar">
+        <nav class="quiz__nav" aria-label="题目导航">
+          <button class="chip-btn" id="prevBtn" type="button">← 上一题</button>
+          <button class="chip-btn" id="nextBtn" type="button">下一题 →</button>
+          <button class="chip-btn chip-btn--ghost" id="padBtn" type="button">题号</button>
+          <button class="chip-btn chip-btn--ghost" id="starBtn" type="button" aria-pressed="false">☆ 收藏</button>
+        </nav>
+      </div>
+
+      <article class="qcard" id="qcard">
+        <div class="qcard__tags">
+          <span class="tag" id="qType">单选题</span>
+          <span class="tag tag--soft" id="qNo">第 1 题</span>
+          <a class="tag tag--soft" id="qSource" href="#" title="回到原章节页看这道题">原章节</a>
+        </div>
+        <div class="qcard__body" id="qText"></div>
+        <div class="options" id="qOptions" role="group" aria-label="选项"></div>
+        <div class="qcard__verdict" id="qVerdict" hidden></div>
+        <div class="qcard__analysis" id="qAnalysis" hidden>
+          <h3 class="qcard__analysis-title">解析</h3>
+          <div class="qcard__analysis-body" id="qAnalysisBody"></div>
+        </div>
+
+        <details class="qcard__note" id="qNoteBox">
+          <summary class="qcard__note-head">
+            <span>我的笔记</span>
+            <span class="qcard__note-state" id="qNoteState" aria-live="polite"></span>
+          </summary>
+          <div class="qcard__note-body">
+            <textarea class="qcard__note-text" id="qNoteText" rows="3" spellcheck="false"
+              placeholder="记点什么：关键知识点、易错点、要回来复习的地方…（随写随存，换题也不会丢）"></textarea>
+            <div class="qcard__note-bar">
+              <span class="qcard__note-hint">自动保存（游客存本机，登录后存服务器）</span>
+              <button class="link-danger" id="qNoteClear" type="button">清空笔记</button>
+            </div>
+          </div>
+        </details>
+
+        <!-- 题目反馈：和章节页一样可以纠错 → 首页「维护日志」 -->
+        <div class="qcard__feedback" id="qFeedback">
+          <button class="qcard__fb-toggle" id="fbToggle" type="button" aria-expanded="false" aria-controls="fbPanel">
+            <span class="qcard__fb-toggle-icon" aria-hidden="true">⚠</span>
+            <span>这道题有问题？向维护者反馈</span>
+            <span class="qcard__fb-count" id="fbCount" hidden></span>
+          </button>
+          <div class="qcard__fb-panel" id="fbPanel" hidden>
+            <p class="qcard__fb-hint">觉得<strong>题干、答案或解析</strong>有误？选个类型、写下你的判断依据。
+              反馈会集中显示在首页「维护日志」，方便统一勘误。</p>
+            <div class="qcard__fb-types" role="group" aria-label="反馈类型">
+              <button class="chip-btn qcard__fb-type" type="button" data-fbtype="question">题干有误</button>
+              <button class="chip-btn qcard__fb-type" type="button" data-fbtype="answer">答案有误</button>
+              <button class="chip-btn qcard__fb-type" type="button" data-fbtype="analysis">解析有误</button>
+            </div>
+            <textarea class="qcard__fb-text" id="fbText" rows="3" spellcheck="false" maxlength="500"
+              placeholder="例如：答案应是 B——只有 width 能设置单元格宽度；line-height 只影响行高…（最多 500 字）"></textarea>
+            <div class="qcard__fb-bar">
+              <span class="qcard__fb-state" id="fbState" aria-live="polite"></span>
+              <button class="btn btn--primary btn--sm" id="fbSubmit" type="button">提交反馈</button>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <div class="quiz__actions">
+        <button class="btn btn--primary btn--wide" id="submitBtn" type="button">提交答案</button>
+        <button class="btn btn--ghost" id="toResultBtn" type="button">结束本轮，看结果</button>
+        <button class="btn btn--ghost" id="changePickBtn" type="button">换题量</button>
+      </div>
+    </section>
+
+    <!-- ===== 结果视图 ===== -->
+    <section class="result" id="resultView" hidden>
+      <div class="result__card">
+        <h1 class="result__title">综合测评 · 本轮结果</h1>
+        <p class="result__score" id="resultScore">—</p>
+        <p class="result__sub" id="resultSub"></p>
+        <div class="result__wrong" id="resultWrong"></div>
+        <div class="result__actions">
+          <button class="btn btn--primary" id="newRoundBtn" type="button">换一组（重新随机抽题）</button>
+          <button class="btn btn--ghost" id="reviewBtn" type="button">回看本轮题目</button>
+          <a class="btn btn--ghost" href="index.html">返回章节列表</a>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== 题号面板 ===== -->
+    <div class="pad" id="pad" hidden>
+      <div class="pad__panel" role="dialog" aria-modal="true" aria-label="题号导航">
+        <div class="pad__head">
+          <strong>题号导航</strong>
+          <button class="icon-btn" id="padClose" type="button" aria-label="关闭">✕</button>
+        </div>
+        <div class="pad__grid" id="padGrid"></div>
+        <div class="pad__legend">
+          <span><i class="dot dot--ok"></i>答对</span>
+          <span><i class="dot dot--bad"></i>答错</span>
+          <span><i class="dot dot--cur"></i>当前</span>
+          <span><i class="dot"></i>未答</span>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer__inner">
+      <p class="footer__keys">
+        快捷操作：<kbd>A</kbd>~<kbd>E</kbd> 选择选项 ·
+        <kbd>Enter</kbd> 提交 / 下一题 ·
+        <kbd>←</kbd><kbd>→</kbd> 上一题 / 下一题 ·
+        <kbd>S</kbd> 收藏
+      </p>
+      <p class="footer__meta">后端版 · 综合测评随机抽题，已提交成绩自动同步原章节（游客存本机，登录后存服务器） · <a href="index.html">返回章节列表</a></p>
+    </div>
+  </footer>
+
+  <div class="toast-host" id="toastHost" role="status" aria-live="polite"></div>
+
+  <!-- 数据与引擎：exam.js 是 quiz.js 家族的「随机抽题变体」，题目跨两库抽取 -->
+  <script src="data/web.js"></script>
+  <script src="data/java.js"></script>
+  <script src="js/markdown.js"></script>
+  <script src="js/store.js"></script>
+  <script src="js/util.js"></script>
+  <script src="js/exam.js"></script>
+  <!-- 看板娘（独立于刷题逻辑，加载失败也不影响页面） -->
+  <script src="js/mascot.js"></script>
+</body>
+</html>

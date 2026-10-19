@@ -472,18 +472,20 @@
   /* 拖动（鼠标 / 单指 / 触屏笔通用）：
      1. pointerdown 记下"按住点"相对她左上角的偏移，并 setPointerCapture 抓牢指针
         —— 哪怕手指滑出她身体外面，事件也照样回到 box，不会中途丢失；
-     2. pointermove 超过 6px 才算真在拖（防止手抖一下把"点她"误判成"拖她"），
-        之后把 box 的 top/right 换成 left/top 定位，每帧跟随手指；
-     3. 用「视口坐标 + 滚动量」算页面绝对位置再扣掉她所在容器（.hero / 做题区，
-        都是 position:relative）的位置，所以怎么滚动页面都能精准贴手；
-     4. 始终 clamp 在可视范围内，不会拖出屏幕找不回来；松手就停在那儿（不做动画）。
+     2. pointermove 超过 6px 才算真在拖（防止手抖一下把"点她"误判成"拖她"）；
+     3. 她开场就被钉在屏幕上（见下方 pinToViewport）；这里的「升级」只是
+        双保险——万一钉的时候布局还没稳住（图片把页面挤动过），拖动起点
+        再就地转成 fixed，保证从这一刻起滚动与她无关；
+     4. 全程用视口坐标计算并 clamp 在 [0, 屏幕宽/高 − 她的尺寸] 里，
+        所以她永远完整留在可见屏幕内，不可能被拖丢；松手就停在那儿（不做动画）。
      注意 CSS 里 .mascot 的 touch-action 是 none：手指在她身上滑动时页面不跟着滚。 */
   var drag = { on: false, moved: false, lastEnd: 0 };
   var DRAG_TH = 6; // 拖动判定阈值（px）
 
-  function parentLeftTop(el) { // 容器（相对定位的 .hero / 做题区）左上角的页面绝对坐标
-    var b = el.getBoundingClientRect();
-    return { l: b.left + window.pageXOffset, t: b.top + window.pageYOffset };
+  /* 屏幕里「真正能看见」的矩形：用 documentElement 的 client 尺寸，
+     它已经扣掉了滚动条——拿 innerWidth 算的话她会压到滚动条上 15px。 */
+  function vp() {
+    return { w: document.documentElement.clientWidth, h: document.documentElement.clientHeight };
   }
 
   box.addEventListener('pointerdown', function (ev) {
@@ -500,20 +502,25 @@
     var b = box.getBoundingClientRect();
     var cx = ev.clientX - b.left - drag.ox; // 相对上一次位置该移动的距离
     var cy = ev.clientY - b.top - drag.oy;
-    if (!drag.moved && Math.abs(cx) + Math.abs(cy) < DRAG_TH) return; // 还没过阈值：只当按住了
-    drag.moved = true;
+    if (!drag.moved) {
+      if (Math.abs(cx) + Math.abs(cy) < DRAG_TH) return; // 还没过阈值：只当按住了
+      drag.moved = true;
+      // 开始拖：就地升级成屏幕定位，left/top 取她此刻在屏幕里的位置，
+      // 这样切换定位方式的瞬间她不会跳一下
+      box.style.position = 'fixed';
+      box.style.left = b.left + 'px';
+      box.style.top = b.top + 'px';
+      box.style.right = 'auto'; // 覆盖 CSS 里写死的 right / bottom，否则两者打架
+      box.style.bottom = 'auto';
+    }
     ev.preventDefault();
-    var p = parentLeftTop(box.offsetParent || box); // 她的定位基准容器（页面绝对坐标）
-    var l = ev.pageX - drag.ox - p.l; // 目标 left = 手指页面位置 − 按住偏移 − 容器位置
-    var t = ev.pageY - drag.oy - p.t;
-    // 容器左上角当前在视口里的位置（减掉滚动量），用来把她 clamp 在屏幕内不拖丢
-    var pvL = p.l - window.pageXOffset, pvT = p.t - window.pageYOffset;
-    l = Math.max(-pvL, Math.min(window.innerWidth - box.offsetWidth - pvL, l));
-    t = Math.max(-pvT, Math.min(window.innerHeight - box.offsetHeight - pvT, t));
+    // 视口坐标一步到位：left = 手指屏幕位置 − 按住偏移，再 clamp 进屏幕。
+    // fixed 定位 + 屏幕内坐标 = 滚动时她纹丝不动，也永远出不了这块屏幕。
+    var s = vp();
+    var l = Math.max(0, Math.min(s.w - b.width, ev.clientX - drag.ox));
+    var t = Math.max(0, Math.min(s.h - b.height, ev.clientY - drag.oy));
     box.style.left = l + 'px';
     box.style.top = t + 'px';
-    box.style.right = 'auto'; // 覆盖 CSS 里写死的 right / bottom，否则两者打架
-    box.style.bottom = 'auto';
     if (reduced) draw(performance.now()); // 无动画循环的场合补画一帧，防止画布留白
   });
 
@@ -529,4 +536,34 @@
   }
   box.addEventListener('pointerup', endDrag);
   box.addEventListener('pointercancel', endDrag);
+
+  /* 开场就把她「钉」到屏幕上：position 改成 fixed，left/top 取她此刻在
+     视口里的位置（顺手 clamp 进屏幕）。这样不只是拖过之后——页面一打开
+     她就是屏幕的一部分：滚轮滚、手指滑，她都停在你看到的那个位置，
+     不会被页面滚走，也永远不可能跑到屏幕外面去。
+     （放在拖拽监听之后：宽屏做题页 CSS 本来就写了 fixed，这里统一收口。） */
+  function pinToViewport() {
+    var b = box.getBoundingClientRect();
+    if (!b.width) return; // 还没布局好 / 被隐藏：先不钉，start() 里会再试
+    var v = vp();
+    box.style.position = 'fixed';
+    box.style.left = Math.max(0, Math.min(v.w - b.width, b.left)) + 'px';
+    box.style.top = Math.max(0, Math.min(v.h - b.height, b.top)) + 'px';
+    box.style.right = 'auto';  // 清掉 CSS 的 right/bottom 锚点，防止和 left/top 打架
+    box.style.bottom = 'auto';
+  }
+  pinToViewport();
+  window.addEventListener('load', pinToViewport); // 字体/图片把布局挪动了就以最终位置为准
+
+  /* 屏幕变小了（转手机 / 拖窗口边缘）：把已经钉在屏幕上的她拉回可见范围，
+     保证「不能移出所见屏幕」这条从头到尾都成立。 */
+  window.addEventListener('resize', function () {
+    if (box.style.position !== 'fixed') return; // 极端兜底：连钉都没钉成的场合不管
+    var v = vp();
+    var l = Math.min(parseFloat(box.style.left) || 0, v.w - box.offsetWidth);
+    var t = Math.min(parseFloat(box.style.top) || 0, v.h - box.offsetHeight);
+    box.style.left = Math.max(0, l) + 'px';
+    box.style.top = Math.max(0, t) + 'px';
+    if (reduced) draw(performance.now()); // 尺寸变了画布要重画一帧
+  });
 })();

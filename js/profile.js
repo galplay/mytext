@@ -14,7 +14,13 @@
 (function () {
   'use strict';
 
-  if (Store.session.get() === 'guest') {
+  /* 带 ?u=用户名 打开 = 查看他人主页（只读，游客也能看，不用登录）；
+     不带参数 = 我的主页（没登录凭证则先去登录页）。 */
+  var target = '';
+  try { target = (new URLSearchParams(location.search).get('u') || '').trim(); } catch (e) { target = ''; }
+  var viewingOther = false; // 拉到数据后确认「看的不是自己」才置 true
+
+  if (!target && Store.session.get() === 'guest') {
     // 本机没有任何登录凭证：先去登录，登录成功后回到本页
     location.replace('account.html?next=profile.html');
     return;
@@ -236,29 +242,37 @@
     }
     friends.forEach(function (fr) {
       var row = el('div', 'friend-row');
-      row.appendChild(UI.avatarEl(fr, 'sm'));
+      /* 头像和名字可点：跳到 TA 的主页（?u= 只读模式） */
+      var link = el('a', 'friend-row__link');
+      link.href = 'profile.html?u=' + encodeURIComponent(fr.name);
+      link.title = '查看 ' + (fr.nick || fr.name) + ' 的主页';
+      link.appendChild(UI.avatarEl(fr, 'sm'));
       var meta = el('div', 'friend-row__meta');
       meta.appendChild(el('strong', null, fr.nick || fr.name));
       meta.appendChild(el('span', 'friend-row__user', '@' + fr.name));
-      row.appendChild(meta);
+      link.appendChild(meta);
+      row.appendChild(link);
 
       var pk = el('a', 'btn btn--ghost btn--sm', 'PK');
       pk.href = 'rank.html?with=' + encodeURIComponent(fr.name);
       pk.title = '和 ' + (fr.nick || fr.name) + ' 对比战绩';
       row.appendChild(pk);
 
-      var rm = el('button', 'btn btn--ghost btn--sm btn--danger', '移除');
-      rm.type = 'button';
-      rm.addEventListener('click', function () {
-        if (!window.confirm('把「' + (fr.nick || fr.name) + '」从好友里移除吗？')) return;
-        rm.disabled = true;
-        Store.friendRemove(fr.name).then(function (res) {
-          if (!res.ok) { rm.disabled = false; UI.toast(res.err); return; }
-          refreshFriends();
-          UI.toast('已移除好友');
+      /* 移除按钮只在「我自己的主页」上出现：看别人时好友是 TA 的，轮不到我们删 */
+      if (!viewingOther) {
+        var rm = el('button', 'btn btn--ghost btn--sm btn--danger', '移除');
+        rm.type = 'button';
+        rm.addEventListener('click', function () {
+          if (!window.confirm('把「' + (fr.nick || fr.name) + '」从好友里移除吗？')) return;
+          rm.disabled = true;
+          Store.friendRemove(fr.name).then(function (res) {
+            if (!res.ok) { rm.disabled = false; UI.toast(res.err); return; }
+            refreshFriends();
+            UI.toast('已移除好友');
+          });
         });
-      });
-      row.appendChild(rm);
+        row.appendChild(rm);
+      }
       list.appendChild(row);
     });
   }
@@ -307,7 +321,77 @@
     });
   }
 
-  function init() {
+  /* ---------- 看他人主页（?u= 只读模式） ---------- */
+
+  function bootOther() {
+    UI.bindHeaderTools(); // 看别人主页也能切主题/字号、看顶栏登录位
+    Store.userPublic(target).then(function (res) {
+      if (!res.ok) {
+        var note = $('viewingNote');
+        note.hidden = false;
+        note.textContent = res.status === 404
+          ? '没有找到用户「' + target + '」，TA 可能还没注册。'
+          : '主页加载失败：' + res.err;
+        return;
+      }
+      // 点到自己头像（isSelf）：不套只读壳子，直接走回「我的主页」正常流程
+      if (res.data.isSelf || res.data.user.name === Store.session.get()) {
+        target = '';
+        bootMe();
+        return;
+      }
+
+      me = res.data.user;
+      myStats = res.data.stats;
+      viewingOther = true;
+
+      // 编辑资料、加好友、退出登录 都是「我自己的事」，看别人时全部收起
+      $('editPane').hidden = true;
+      $('friendAdd').hidden = true;
+      $('friendHint').textContent = '下面是 TA 的好友，点头像或名字可以去看 TA 的主页。';
+      $('profileActionsBar').hidden = true;
+      $('statsTitle').textContent = 'TA 的战绩';
+
+      var note = $('viewingNote');
+      note.hidden = false;
+      note.textContent = '你正在查看「' + (me.nick || me.name) + '」的主页（他人资料只读）。';
+      if (Store.session.get() !== 'guest') {
+        var back = el('a', 'btn btn--ghost btn--sm', '回到我的主页');
+        back.href = 'profile.html';
+        back.style.marginLeft = '10px';
+        note.appendChild(back);
+      }
+
+      $('whoami').textContent = me.name;
+      renderHead();
+      renderStats();
+      renderFriends();
+
+      // 看别人时也提供一键「加好友 / 已是好友」：就挂在提示条后面
+      if (Store.session.get() !== 'guest' && me.name !== Store.session.get()) {
+        var already = ((Store.session.user() || {}).friends || []).some(function (f) { return f.name === me.name; });
+        if (!already) {
+          var add = el('button', 'btn btn--primary btn--sm', '加 TA 为好友');
+          add.type = 'button';
+          add.style.marginLeft = '10px';
+          add.addEventListener('click', function () {
+            add.disabled = true;
+            Store.friendAdd(me.name).then(function (r) {
+              add.disabled = false;
+              if (!r.ok) { UI.toast(r.err); return; }
+              add.textContent = '✓ 已是好友';
+              UI.toast('已和 ' + (me.nick || me.name) + ' 成为好友');
+            });
+          });
+          note.appendChild(add);
+        }
+      }
+    });
+  }
+
+  /* ---------- 我的主页（原有流程） ---------- */
+
+  function bootMe() {
     UI.bindHeaderTools();
     $('whoami').textContent = Store.session.get(); // 先用本机缓存占位，拉到资料后再换成真名
     bindAvatarUpload();
@@ -337,5 +421,5 @@
     });
   }
 
-  init();
+  if (target) bootOther(); else bootMe();
 })();

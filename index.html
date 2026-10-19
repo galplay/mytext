@@ -114,6 +114,21 @@
 
     <div id="bankSections"></div>
 
+    <!-- 综合测评：web + Java 两个题库随机抽题，题量自选（放在两区题目之后） -->
+    <section class="examzone" id="examZone" aria-labelledby="examTitle">
+      <div class="examzone__card">
+        <div class="examzone__head">
+          <h2 id="examTitle">综合测评</h2>
+          <p class="examzone__desc" id="examDesc">从 web + Java 两个题库随机抽题，全真混合演练。</p>
+        </div>
+        <div class="examzone__body">
+          <span class="examzone__label" id="examLabel">选题量</span>
+          <div class="examzone__chips" id="examChips" role="group" aria-labelledby="examLabel"></div>
+          <a class="btn btn--primary examzone__go" id="examGo" href="exam.html?n=10">开始测评 →</a>
+        </div>
+      </div>
+    </section>
+
     <!-- 题目维护日志：汇总大家在答题页提交的纠错反馈（题干 / 答案 / 解析），可直达原题 -->
     <section class="maintlog" id="maintLog" aria-labelledby="maintLogTitle">
       <div class="section-head">

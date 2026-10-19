@@ -461,6 +461,12 @@ window.Store = (function () {
       });
     },
 
+    /* 查看他人主页：GET /api/user?name=xxx → { ok, data:{ user, stats, isSelf } }
+       （排行榜点头像、好友列表点名字，跳到 profile.html?u=名字 后由它拉数据） */
+    userPublic: function (name) {
+      return api('GET', '/user?name=' + encodeURIComponent(name));
+    },
+
     /* 更新资料（昵称 / 签名 / 头像） */
     updateProfile: function (patch) {
       return api('POST', '/profile', patch).then(function (res) {

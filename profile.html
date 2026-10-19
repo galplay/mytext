@@ -53,9 +53,12 @@
     <!-- 头部：大头像 + 昵称 + 用户名 + 签名 -->
     <section class="profile-head" id="profileHead" aria-label="账号信息"></section>
 
+    <!-- 看他人主页时显示的只读提示（profile.js 里按需取消 hidden） -->
+    <p class="notice" id="viewingNote" hidden></p>
+
     <div class="profile-grid">
       <!-- 编辑资料 -->
-      <section class="pane" aria-labelledby="editTitle">
+      <section class="pane" id="editPane" aria-labelledby="editTitle">
         <h2 class="pane__title" id="editTitle">编辑资料</h2>
 
         <div class="avatar-editor">
@@ -83,7 +86,7 @@
       </section>
 
       <!-- 战绩 -->
-      <section class="pane" aria-labelledby="statsTitle">
+      <section class="pane" id="statsPane" aria-labelledby="statsTitle">
         <h2 class="pane__title" id="statsTitle">我的战绩</h2>
         <div class="metric-grid" id="metricGrid"></div>
         <p class="pane__hint">用时按「实际作答时间」累计：中途挂机（间隔超过 10 分钟）的部分不计入。</p>
@@ -95,10 +98,10 @@
       </section>
 
       <!-- 好友 -->
-      <section class="pane pane--wide" aria-labelledby="friendTitle">
+      <section class="pane pane--wide" id="friendPane" aria-labelledby="friendTitle">
         <h2 class="pane__title" id="friendTitle">好友</h2>
-        <p class="pane__hint">输入对方的用户名就能互加好友（服务器上的账号都可以加），然后在排行榜里 PK。</p>
-        <div class="friend-add">
+        <p class="pane__hint" id="friendHint">输入对方的用户名就能互加好友（服务器上的账号都可以加），然后在排行榜里 PK。</p>
+        <div class="friend-add" id="friendAdd">
           <input class="input" id="friendName" type="text" maxlength="16" autocomplete="off" placeholder="输入对方的用户名">
           <button class="btn btn--primary btn--sm" id="friendAddBtn" type="button">添加好友</button>
         </div>
@@ -106,7 +109,7 @@
       </section>
     </div>
 
-    <div class="profile-actions">
+    <div class="profile-actions" id="profileActionsBar">
       <span class="profile-actions__note">当前身份：<strong id="whoami"></strong> · 退出后作答数据会切换到游客身份，服务器上的数据保留，重新登录可继续。</span>
       <button class="btn btn--ghost" id="logoutBtn" type="button">退出登录</button>
     </div>

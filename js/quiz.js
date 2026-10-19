@@ -45,7 +45,7 @@
   var stars = {};
   var notes = {};
 
-  var state = { mode: 'all', order: [], pos: 0 };
+  var state = { mode: 'all', order: [], pos: 0, redoSet: {}, drafts: {} };
 
   /* ---------- 统计 ---------- */
 
@@ -82,6 +82,11 @@
   }
 
   function save() { Store.progress.save(bankId, chapterId, progress); }
+  /* 本题是否处于「重做错题」状态：原错题记录仍原样保留在账上，
+     重做期间的选择只记进 state.drafts 草稿，提交本题那一刻才覆盖记录 */
+  function isRedo(q) { return state.mode === 'redo' && !!state.redoSet[q.id]; }
+  /* 离开重做错题流程：草稿作废（原记录从头到尾没动过，无需恢复） */
+  function exitRedo() { state.redoSet = {}; state.drafts = {}; }
   function currentIndex() { return state.order[state.pos]; }
   function currentQ() { return questions[currentIndex()]; }
   function isLastInOrder() { return state.pos >= state.order.length - 1; }
@@ -136,8 +141,10 @@
       box.appendChild(note);
       return;
     }
-    var submitted = rec && rec.ok !== undefined;
-    var draft = rec && rec.ok === undefined ? rec.c : null;
+    var redo = isRedo(q);
+    var submitted = rec && rec.ok !== undefined && !redo;
+    var draft = redo ? (state.drafts[q.id] || (rec && rec.ok !== undefined ? rec.c : null))
+                     : (rec && rec.ok === undefined ? rec.c : null);
     q.options.forEach(function (opt) {
       var btn = document.createElement('button');
       btn.type = 'button';
@@ -175,7 +182,7 @@
   function renderVerdictAndAnalysis(q, rec) {
     var verdict = $('qVerdict');
     var analysis = $('qAnalysis');
-    var submitted = rec && rec.ok !== undefined;
+    var submitted = rec && rec.ok !== undefined && !isRedo(q);
 
     if (submitted) {
       verdict.hidden = false;
@@ -252,7 +259,7 @@
   }
 
   function renderButtons(q, rec) {
-    var submitted = rec && rec.ok !== undefined;
+    var submitted = rec && rec.ok !== undefined && !isRedo(q);
     var submitBtn = $('submitBtn');
     if (!q.options.length) {
       submitBtn.disabled = false;
@@ -314,8 +321,25 @@
 
   function selectOption(key) {
     var q = currentQ();
+    if (!q || !progress) return; // 数据还没加载完，忽略
     var rec = progress.r[q.id];
-    if (rec && rec.ok !== undefined) return; // 已提交，锁定
+    if (rec && rec.ok !== undefined && !isRedo(q)) return; // 已提交，锁定
+
+    if (isRedo(q)) {
+      /* 重做错题中：选择只进内存草稿，progress.r 里的原错题记录不动——
+         这样哪怕一题没提交就直接交卷，这些题在错题本里依然是错题 */
+      if (q.type === 'multi') {
+        var rcur = state.drafts[q.id] || (rec ? rec.c.slice() : []);
+        var rat = rcur.indexOf(key);
+        if (rat >= 0) rcur.splice(rat, 1); else rcur.push(key);
+        rcur.sort();
+        if (rcur.length) state.drafts[q.id] = rcur; else delete state.drafts[q.id];
+      } else {
+        state.drafts[q.id] = [key];
+      }
+      renderQuestion();
+      return;
+    }
 
     if (q.type === 'multi') {
       var cur = rec && rec.c ? rec.c.slice() : [];
@@ -335,14 +359,18 @@
     var q = currentQ();
     if (!q || !progress) return; // 数据还没加载完（服务器较慢时点得早），忽略
     var rec = progress.r[q.id];
-    if (rec && rec.ok !== undefined) return; // 幂等保护：重复提交不改成绩
-    if (!rec || !rec.c || !rec.c.length) { UI.toast('请先选择答案'); return; }
+    var redo = isRedo(q);
+    if (rec && rec.ok !== undefined && !redo) return; // 幂等保护：重复提交不改成绩
+    var chosen = redo ? (state.drafts[q.id] || (rec ? rec.c : null)) : (rec ? rec.c : null);
+    if (!chosen || !chosen.length) { UI.toast('请先选择答案'); return; }
 
-    var sel = rec.c.slice().sort();
+    var sel = chosen.slice().sort();
     var ans = q.answer.slice().sort();
     var ok = sel.length === ans.length && sel.every(function (k, i) { return k === ans[i]; });
 
-    progress.r[q.id] = { c: rec.c.slice(), ok: ok };
+    // 提交这一刻才覆盖旧记录：答对 → 错题本移走；答错 → 继续是错题
+    progress.r[q.id] = { c: chosen.slice(), ok: ok };
+    if (redo) { delete state.redoSet[q.id]; delete state.drafts[q.id]; }
     save();
     renderQuestion();
     // 答对放「天降米饭」庆祝，答错放「宕机」失败动画（页面没有看板娘时自动跳过）
@@ -354,7 +382,7 @@
       goTo(state.pos + 1);
       return;
     }
-    if (state.mode === 'redo') { progress.done = true; save(); showResult(); return; }
+    if (state.mode === 'redo') { exitRedo(); progress.done = true; save(); showResult(); return; }
     finish();
   }
 
@@ -369,6 +397,7 @@
 
   function switchMode(mode) {
     if (mode === state.mode) return;
+    if (state.mode === 'redo') exitRedo(); // 切走 = 放弃重做：草稿作废，原记录原样都在
     var order = buildOrder(mode);
     if (!order.length && mode !== 'all') return;
     state.mode = mode;
@@ -380,6 +409,7 @@
   function padJump(idx) {
     closePad();
     if (state.mode !== 'all') {
+      exitRedo(); // 从题号面板跳走 = 放弃重做，草稿作废
       state.mode = 'all';
       state.order = buildOrder('all');
     }
@@ -460,6 +490,7 @@
   function reviewWrongQuestion(idx) {
     $('resultView').hidden = true;
     $('quizView').hidden = false;
+    exitRedo(); // 结果页点错题回看 = 退出重做模式，草稿作废
     state.mode = 'all';
     state.order = buildOrder('all');
     goTo(state.order.indexOf(idx));
@@ -467,6 +498,7 @@
 
   function finish() {
     if (!progress) return;
+    exitRedo(); // 重做错题中途直接交卷：草稿作废，没重新提交的题保持错题身份留在错题本
     var unanswered = total - answeredCount();
     if (unanswered > 0 && !window.confirm('还有 ' + unanswered + ' 题未作答，仍要交卷吗？')) return;
     progress.done = true;
@@ -478,7 +510,14 @@
     if (!progress) return;
     var wrongIdx = wrongIndexes();
     if (!wrongIdx.length) return;
-    wrongIdx.forEach(function (idx) { delete progress.r[questions[idx].id]; });
+    /* 不删错题记录！旧实现是「先删记录再重做」，用户一题没答直接交卷，
+       这些错题就被洗成「未作答」、从错题本里悄悄消失。
+       现在改成：原记录原样保留，只把这些题登记进 redoSet 允许重答；
+       重答的选择进草稿，提交本题那一刻才覆盖记录——
+       答对 → 移出错题本；答错 → 继续是错题；没提交 → 还是错题。 */
+    state.redoSet = {};
+    wrongIdx.forEach(function (idx) { state.redoSet[questions[idx].id] = true; });
+    state.drafts = {};
     progress.done = false;
     progress.i = wrongIdx[0];
     save();

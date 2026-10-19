@@ -142,7 +142,39 @@
       : (Store.session.get() !== 'guest' ? '数据与服务器实时同步' : '进度保存在本机浏览器'));
     chips.forEach(function (t) { statsHost.appendChild(el('span', 'stat-chip', t)); });
 
+    renderExamZone(qTotal);
     refreshTools();
+  }
+
+  /* ---------- 综合测评入口（两库随机抽题，题量自选） ---------- */
+
+  var EXAM_OPTIONS = [10, 25, 50, 100]; // 快捷题量，超出总题数的自动不显示
+  var examN = EXAM_OPTIONS[0];          // 当前选中的题量
+
+  function renderExamZone(total) {
+    var box = $('examChips');
+    if (!box) return;
+    box.innerHTML = '';
+    $('examDesc').textContent =
+      '题目从 web + Java 两个题库共 ' + total + ' 道里随机抽取，不限章节、不重样；' +
+      '提交的答案会同步回该题的原章节进度。';
+
+    EXAM_OPTIONS.forEach(function (n) {
+      if (n > total) return; // 池子里没这么多题就不给这个选项
+      var btn = el('button', 'chip-btn' + (n === examN ? ' is-active' : ''));
+      btn.type = 'button';
+      btn.textContent = n + ' 道';
+      btn.setAttribute('aria-pressed', n === examN ? 'true' : 'false');
+      btn.addEventListener('click', function () {
+        examN = n;
+        renderExamZone(total);
+      });
+      box.appendChild(btn);
+    });
+
+    var go = $('examGo');
+    go.href = 'exam.html?n=' + examN;
+    go.title = '随机抽取 ' + examN + ' 道题开始综合测评';
   }
 
   /* ---------- 错题本 / 收藏夹 ---------- */

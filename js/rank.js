@@ -120,9 +120,19 @@
 
       var userTd = el('td');
       var u = el('div', 'rank-user');
-      u.appendChild(UI.avatarEl(r.rec, 'sm'));
+      /* 头像 + 昵称做成链接：点开 TA 的个人主页（profile.html?u= 只读模式） */
+      var profHref = 'profile.html?u=' + encodeURIComponent(r.name);
+      var avLink = el('a', 'rank-user__link');
+      avLink.href = profHref;
+      avLink.title = '查看 ' + (r.rec.nick || r.name) + ' 的主页';
+      avLink.appendChild(UI.avatarEl(r.rec, 'sm'));
+      u.appendChild(avLink);
       var ub = el('div', 'rank-user__text');
-      ub.appendChild(el('strong', null, r.rec.nick || r.name));
+      var nickA = el('a', 'rank-user__link');
+      nickA.href = profHref;
+      nickA.title = avLink.title;
+      nickA.appendChild(el('strong', null, r.rec.nick || r.name));
+      ub.appendChild(nickA);
       ub.appendChild(el('span', 'rank-user__name', '@' + r.name));
       u.appendChild(ub);
       userTd.appendChild(u);

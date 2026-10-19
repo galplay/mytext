@@ -146,6 +146,21 @@ const api = {
     sendJson(res, 200, { user, stats: db.myStats(user.name) });
   },
 
+  /* 查看他人主页：GET /api/user?name=xxx —— 公开接口（游客也能看）。
+     只返回「公开资料（昵称/头像/签名/注册时间/好友）+ 汇总战绩」，
+     答题记录、笔记原文等隐私细节一概不出服务器；
+     userPublic() 本来就不含密码盐和散列，这里直接复用。 */
+  'GET /api/user': (req, res, body, token, user) => {
+    let name = '';
+    try {
+      name = String(new URL(req.url, 'http://localhost').searchParams.get('name') || '').trim();
+    } catch (e) { /* 非法 URL：按空处理 */ }
+    if (!name || name.length > 16) return sendJson(res, 400, { error: '用户名不正确' });
+    const target = db.userPublic(name);
+    if (!target) return sendJson(res, 404, { error: '没有找到用户「' + name + '」' });
+    sendJson(res, 200, { user: target, stats: db.myStats(name), isSelf: !!user && user.name === name });
+  },
+
   /* 页面打开时一次性拉取我的全部学习数据（答题记录/收藏/笔记/章节进度） */
   'GET /api/my-data': (req, res, body, token, user) => {
     if (!user) return sendJson(res, 401, { error: '请先登录' });
